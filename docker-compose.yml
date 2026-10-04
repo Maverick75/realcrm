@@ -1,0 +1,11 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: realcrm-mongo
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - realcrm_mongo_data:/data/db
+
+volumes:
+  realcrm_mongo_data:

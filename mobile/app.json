@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "RealCRM",
+    "slug": "realcrm",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "realcrm",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F766E"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F766E"
+      },
+      "package": "com.realcrm.app",
+      "usesCleartextTraffic": true,
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.realcrm.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Select property reel video clips to publish.",
+        "NSCameraUsageDescription": "Capture property reel clips.",
+        "LSApplicationQueriesSchemes": ["whatsapp", "whatsapp-business"]
+      }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow RealCRM to access videos for Instagram Reels."
+        }
+      ]
+    ]
+  }
+}
