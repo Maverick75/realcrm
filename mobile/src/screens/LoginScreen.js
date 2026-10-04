@@ -36,7 +36,13 @@ export default function LoginScreen({ navigation }) {
       }
       await login(email.trim(), password);
     } catch (err) {
-      const message = err.response?.data?.message || err.message || 'Login failed';
+      const isNetwork =
+        err.message === 'Network Error' ||
+        err.code === 'ECONNABORTED' ||
+        err.code === 'ERR_NETWORK';
+      const message = isNetwork
+        ? `Cannot reach API at ${baseUrl || apiUrl}.\n\nEmulator: http://10.0.2.2:5000\nPhone: http://YOUR_PC_LAN_IP:5000\n\nOpen Server settings and confirm the URL; keep backend running.`
+        : err.response?.data?.message || err.message || 'Login failed';
       Alert.alert('Login error', message);
     } finally {
       setLoading(false);
@@ -114,7 +120,8 @@ export default function LoginScreen({ navigation }) {
               placeholderTextColor={colors.textMuted}
             />
             <Text style={styles.hint}>
-              Emulator: http://10.0.2.2:5000 · Device: http://YOUR_LAN_IP:5000
+              Emulator: http://10.0.2.2:5000{'\n'}
+              Phone on Wi‑Fi: http://192.168.1.6:5000 (this PC)
             </Text>
           </View>
         )}

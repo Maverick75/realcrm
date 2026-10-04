@@ -56,7 +56,7 @@ export default function RequirementsScreen({ navigation }) {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>
-            {user?.role === 'agent' ? 'My leads' : 'Buyer requirements'}
+            {user?.role === 'admin' ? 'Buyer requirements' : 'My leads'}
           </Text>
           <Text style={styles.sub}>Capture needs · match · keep buyers happy</Text>
         </View>
@@ -106,7 +106,10 @@ export default function RequirementsScreen({ navigation }) {
         )}
       />
 
-      {(user?.role === 'admin' || user?.role === 'agent') && (
+      {(user?.role === 'admin' ||
+        user?.role === 'agent' ||
+        user?.role === 'publisher' ||
+        user?.role === 'owner') && (
         <Pressable
           style={styles.fab}
           onPress={() => navigation.navigate('RequirementForm')}

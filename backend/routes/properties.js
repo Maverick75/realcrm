@@ -10,13 +10,47 @@ const { generatePropertyCaption } = require('../services/captionLlm');
 const { publishReel } = require('../services/instagramPublish');
 const { getAgentIgCredentials } = require('../services/instagramCredentials');
 const { decryptToken } = require('../services/tokenCrypto');
+const {
+  buildInventoryImageKey,
+  uploadListingImage,
+  deleteObjectByUrl,
+  deleteObjectsByUrls,
+} = require('../services/s3');
 
 const router = express.Router();
+
+const STATUS_SORT = {
+  Available: 0,
+  Hold: 1,
+  Deal: 2,
+  Blocked: 3,
+  Sold: 4,
+  Draft: 5,
+};
+
+const PROPERTY_DETAIL_FIELDS = [
+  'title',
+  'type',
+  'listingType',
+  'residenceStyle',
+  'facing',
+  'carpetArea',
+  'bhk',
+  'villaType',
+  'plotSize',
+  'price',
+  'areaSqft',
+  'zone',
+  'address',
+  'status',
+  'notes',
+  'videoUrl',
+];
 
 const uploadDir = path.join(__dirname, '..', 'uploads', 'videos');
 fs.mkdirSync(uploadDir, { recursive: true });
 
-const storage = multer.diskStorage({
+const videoStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
   filename: (_req, file, cb) => {
     const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -25,7 +59,7 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({
-  storage,
+  storage: videoStorage,
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (!file.mimetype.startsWith('video/')) {
@@ -34,6 +68,33 @@ const upload = multer({
     cb(null, true);
   },
 });
+
+const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 12 * 1024 * 1024, files: 12 },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed'));
+    }
+    cb(null, true);
+  },
+});
+
+function applyPropertyFields(property, body) {
+  PROPERTY_DETAIL_FIELDS.forEach((field) => {
+    if (body[field] === undefined) return;
+    if (['bhk', 'price', 'areaSqft', 'carpetArea'].includes(field)) {
+      property[field] =
+        body[field] === '' || body[field] == null
+          ? field === 'price'
+            ? property.price
+            : null
+          : Number(body[field]);
+    } else {
+      property[field] = body[field];
+    }
+  });
+}
 
 function publicBaseUrl(req) {
   return (
@@ -64,6 +125,14 @@ router.get('/', requireRole('agent', 'admin'), async (req, res) => {
       .populate('zone', 'name city slug lat lng')
       .populate('agent', 'name email')
       .sort({ createdAt: -1 });
+
+    properties.sort((a, b) => {
+      const sa = STATUS_SORT[a.status] ?? 99;
+      const sb = STATUS_SORT[b.status] ?? 99;
+      if (sa !== sb) return sa - sb;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
     res.json(properties);
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to fetch properties' });
@@ -87,8 +156,7 @@ router.get('/:id', requireRole('agent', 'admin'), async (req, res) => {
 
 router.post('/', requireRole('agent'), async (req, res) => {
   try {
-    const { title, type, listingType, bhk, price, areaSqft, zone, address, status, notes } =
-      req.body;
+    const { title, type, listingType, price, zone } = req.body;
     if (!title || !type || !listingType || price == null || !zone) {
       return res.status(400).json({
         message: 'title, type, listingType, price, and zone are required',
@@ -97,21 +165,24 @@ router.post('/', requireRole('agent'), async (req, res) => {
     if (!['Sale', 'Rent', 'Lease'].includes(listingType)) {
       return res.status(400).json({ message: 'listingType must be Sale, Rent, or Lease' });
     }
+    if (!['Apartment', 'Villa', 'Plot', 'Commercial'].includes(type)) {
+      return res.status(400).json({
+        message: 'type must be Apartment, Villa, Plot, or Commercial',
+      });
+    }
 
-    const property = await Property.create({
+    const property = new Property({
       agent: req.user._id,
       owner: null,
       title,
       type,
       listingType,
-      bhk: bhk != null && bhk !== '' ? Number(bhk) : null,
       price: Number(price),
-      areaSqft: areaSqft != null && areaSqft !== '' ? Number(areaSqft) : null,
       zone,
-      address,
-      status,
-      notes,
+      status: req.body.status || 'Available',
     });
+    applyPropertyFields(property, req.body);
+    await property.save();
 
     const populated = await Property.findById(property._id)
       .populate('zone', 'name city slug lat lng')
@@ -130,34 +201,7 @@ router.put('/:id', requireRole('agent', 'admin'), async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    const fields = [
-      'title',
-      'type',
-      'listingType',
-      'bhk',
-      'price',
-      'areaSqft',
-      'zone',
-      'address',
-      'status',
-      'notes',
-      'videoUrl',
-    ];
-    fields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        if (['bhk', 'price', 'areaSqft'].includes(field)) {
-          property[field] =
-            req.body[field] === '' || req.body[field] == null
-              ? field === 'price'
-                ? property.price
-                : null
-              : Number(req.body[field]);
-        } else {
-          property[field] = req.body[field];
-        }
-      }
-    });
-
+    applyPropertyFields(property, req.body);
     await property.save();
     const populated = await Property.findById(property._id)
       .populate('zone', 'name city slug lat lng')
@@ -165,6 +209,103 @@ router.put('/:id', requireRole('agent', 'admin'), async (req, res) => {
     res.json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to update property' });
+  }
+});
+
+router.patch('/:id/status', requireRole('agent', 'admin'), async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['Available', 'Hold', 'Deal', 'Blocked', 'Sold', 'Draft'].includes(status)) {
+      return res.status(400).json({
+        message: 'status must be Available, Hold, Deal, Blocked, Sold, or Draft',
+      });
+    }
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    if (!canAccessProperty(req.user, property)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    property.status = status;
+    await property.save();
+    const populated = await Property.findById(property._id)
+      .populate('zone', 'name city slug lat lng')
+      .populate('agent', 'name email');
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message || 'Failed to update status' });
+  }
+});
+
+router.post(
+  '/:id/images',
+  requireRole('agent', 'admin'),
+  imageUpload.array('images', 12),
+  async (req, res) => {
+    try {
+      const property = await Property.findById(req.params.id);
+      if (!property) return res.status(404).json({ message: 'Property not found' });
+      if (!canAccessProperty(req.user, property)) {
+        return res.status(403).json({ message: 'Not authorized' });
+      }
+      if (!req.files?.length) {
+        return res.status(400).json({ message: 'At least one image file is required' });
+      }
+
+      const agentId = property.agent || req.user._id;
+      const urls = [];
+      for (const file of req.files) {
+        const key = buildInventoryImageKey({
+          agentId,
+          propertyId: property._id,
+          originalName: file.originalname,
+        });
+        const url = await uploadListingImage({
+          buffer: file.buffer,
+          contentType: file.mimetype,
+          key,
+        });
+        urls.push(url);
+      }
+      property.images = [...(property.images || []), ...urls];
+      await property.save();
+
+      const populated = await Property.findById(property._id)
+        .populate('zone', 'name city slug lat lng')
+        .populate('agent', 'name email');
+      res.json(populated);
+    } catch (err) {
+      console.error('Property image upload failed:', err.message);
+      res.status(500).json({ message: err.message || 'Image upload failed' });
+    }
+  }
+);
+
+router.delete('/:id/images', requireRole('agent', 'admin'), async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ message: 'url is required' });
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    if (!canAccessProperty(req.user, property)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    const before = property.images || [];
+    property.images = before.filter((u) => u !== url);
+    const removed = property.images.length < before.length;
+    await property.save();
+    if (removed) {
+      try {
+        await deleteObjectByUrl(url);
+      } catch (err) {
+        console.warn('S3 image delete failed:', err.message);
+      }
+    }
+    const populated = await Property.findById(property._id)
+      .populate('zone', 'name city slug lat lng')
+      .populate('agent', 'name email');
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message || 'Failed to delete image' });
   }
 });
 
@@ -301,7 +442,9 @@ router.delete('/:id', requireRole('agent', 'admin'), async (req, res) => {
     if (!canAccessProperty(req.user, property)) {
       return res.status(403).json({ message: 'Not authorized' });
     }
+    const images = [...(property.images || [])];
     await property.deleteOne();
+    await deleteObjectsByUrls(images);
     res.json({ message: 'Property deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to delete property' });

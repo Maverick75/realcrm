@@ -178,7 +178,11 @@ router.get('/', requireRole('admin'), async (_req, res) => {
 
     const withCounts = await Promise.all(
       profiles
-        .filter((p) => p.user && (p.user.role === 'agent' || p.user.role === 'sales'))
+        .filter(
+          (p) =>
+            p.user &&
+            ['publisher', 'agent', 'owner', 'sales'].includes(p.user.role)
+        )
         .map(async (p) => {
           const inventoryCount = await Property.countDocuments({ agent: p.user._id });
           const availableCount = await Property.countDocuments({

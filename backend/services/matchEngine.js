@@ -39,8 +39,13 @@ async function matchAgentsForRequirement(requirement, { limit = 20 } = {}) {
 
   for (const profile of profiles) {
     if (!profile.user) continue;
-    const role = profile.user.role === 'sales' ? 'agent' : profile.user.role;
-    if (role !== 'agent') continue;
+    const role =
+      profile.user.role === 'sales' ||
+      profile.user.role === 'agent' ||
+      profile.user.role === 'owner'
+        ? 'publisher'
+        : profile.user.role;
+    if (role !== 'publisher') continue;
 
     const agentZoneIds = (profile.zones || []).map((z) => z._id || z);
     const inventory = propsByAgent.get(String(profile.user._id)) || [];

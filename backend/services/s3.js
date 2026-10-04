@@ -78,6 +78,11 @@ function buildListingImageKey({ ownerId, listingId, originalName }) {
   return `listings/${ownerId}/${listingId}/${Date.now()}-${safe}`;
 }
 
+function buildInventoryImageKey({ agentId, propertyId, originalName }) {
+  const safe = String(originalName || 'photo.jpg').replace(/[^a-zA-Z0-9._-]/g, '_');
+  return `inventory/${agentId}/${propertyId}/${Date.now()}-${safe}`;
+}
+
 async function uploadListingImage({ buffer, contentType, key }) {
   const { bucket } = getS3Config();
   await getClient().send(
@@ -86,7 +91,6 @@ async function uploadListingImage({ buffer, contentType, key }) {
       Key: key,
       Body: buffer,
       ContentType: contentType || 'application/octet-stream',
-      // Prefer bucket policy for public-read on listings/* rather than object ACL
     })
   );
   return publicUrlForKey(key);
@@ -94,7 +98,9 @@ async function uploadListingImage({ buffer, contentType, key }) {
 
 async function deleteObjectByUrl(url) {
   const key = keyFromPublicUrl(url);
-  if (!key || !key.startsWith('listings/')) return false;
+  if (!key || !(key.startsWith('listings/') || key.startsWith('inventory/'))) {
+    return false;
+  }
   const { bucket } = getS3Config();
   await getClient().send(
     new DeleteObjectCommand({
@@ -117,6 +123,7 @@ async function deleteObjectsByUrls(urls = []) {
 
 module.exports = {
   buildListingImageKey,
+  buildInventoryImageKey,
   uploadListingImage,
   deleteObjectByUrl,
   deleteObjectsByUrls,

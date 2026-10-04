@@ -13,7 +13,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import api from '../api/client';
 import LoadingOverlay from '../components/LoadingOverlay';
-import { ZoneChipsWrap } from '../components/ZonePicker';
+import ZonePicker from '../components/ZonePicker';
 import { LISTING_TYPES, PROPERTY_TYPES } from '../constants/config';
 import { colors, spacing } from '../constants/theme';
 
@@ -319,11 +319,13 @@ export default function OwnerListingFormScreen({ navigation, route }) {
           placeholderTextColor={colors.textMuted}
         />
 
-        <Text style={styles.label}>Zone</Text>
-        <ZoneChipsWrap
+        <Text style={styles.label}>Area</Text>
+        <ZonePicker
           zones={zones}
           selectedIds={zoneId ? [zoneId] : []}
-          onChange={(ids) => setZoneId(ids[ids.length - 1] || null)}
+          onChange={(ids) => setZoneId(ids[0] || null)}
+          multi={false}
+          placeholder="Select area"
         />
 
         <Text style={styles.label}>Address</Text>

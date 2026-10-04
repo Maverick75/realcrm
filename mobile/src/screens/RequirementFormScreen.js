@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import api from '../api/client';
 import LoadingOverlay from '../components/LoadingOverlay';
-import { ZoneChipsWrap } from '../components/ZonePicker';
+import ZonePicker from '../components/ZonePicker';
 import { LISTING_TYPES, REQUIREMENT_PROPERTY_TYPES } from '../constants/config';
 import { colors, spacing } from '../constants/theme';
 
@@ -167,8 +167,14 @@ export default function RequirementFormScreen({ navigation }) {
           </View>
         </View>
 
-        <Text style={styles.label}>Preferred zones</Text>
-        <ZoneChipsWrap zones={zones} selectedIds={selectedZones} onChange={setSelectedZones} />
+        <Text style={styles.label}>Preferred areas</Text>
+        <ZonePicker
+          zones={zones}
+          selectedIds={selectedZones}
+          onChange={setSelectedZones}
+          multi
+          placeholder="Select preferred areas"
+        />
 
         <Text style={styles.label}>Notes</Text>
         <TextInput

@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import LoadingOverlay from '../components/LoadingOverlay';
-import { ZoneChipsWrap } from '../components/ZonePicker';
+import ZonePicker from '../components/ZonePicker';
 import ZoneMapPreview from '../components/ZoneMapPreview';
 import { colors, spacing } from '../constants/theme';
 
@@ -123,8 +123,14 @@ export default function AgentOnboardingScreen() {
         />
 
         <Text style={styles.label}>Areas served *</Text>
-        <Text style={styles.hint}>Tap to select zones (West Hyderabad, Gachibowli, …)</Text>
-        <ZoneChipsWrap zones={zones} selectedIds={selectedZones} onChange={setSelectedZones} />
+        <Text style={styles.hint}>Open the dropdown and pick one or more areas</Text>
+        <ZonePicker
+          zones={zones}
+          selectedIds={selectedZones}
+          onChange={setSelectedZones}
+          multi
+          placeholder="Select areas served"
+        />
         <ZoneMapPreview zones={zones} selectedIds={selectedZones} height={200} />
 
         <Pressable style={styles.button} onPress={onComplete}>

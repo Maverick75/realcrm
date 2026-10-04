@@ -11,8 +11,17 @@ const googleClient = new OAuth2Client();
 function resolveRoleForEmail(email, requestedRole) {
   const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
   if (adminEmail && email.toLowerCase() === adminEmail) return 'admin';
-  if (requestedRole === 'owner') return 'owner';
-  return 'agent';
+  if (requestedRole === 'customer') return 'customer';
+  // publisher (default); accept legacy owner/agent from old clients
+  if (
+    requestedRole === 'publisher' ||
+    requestedRole === 'owner' ||
+    requestedRole === 'agent' ||
+    !requestedRole
+  ) {
+    return 'publisher';
+  }
+  return 'publisher';
 }
 
 function signToken(user) {
@@ -35,7 +44,7 @@ async function publicUser(user) {
     onboardingComplete: true,
   };
 
-  if (role === 'agent') {
+  if (role === 'publisher') {
     const profile = await AgentProfile.findOne({ user: user._id }).select('onboardingComplete');
     base.onboardingComplete = !!profile?.onboardingComplete;
   }
@@ -73,7 +82,7 @@ router.post('/register', async (req, res) => {
       authProvider: 'local',
     });
 
-    if (role === 'agent') {
+    if (role === 'publisher') {
       await AgentProfile.create({ user: user._id });
     }
 
@@ -111,11 +120,21 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Promote configured admin email if needed
+    // Promote configured admin email / migrate legacy roles
+    let dirty = false;
     const desired = resolveRoleForEmail(user.email, user.role);
     if (desired === 'admin' && user.role !== 'admin') {
       user.role = 'admin';
-      await user.save();
+      dirty = true;
+    } else if (['agent', 'owner', 'sales'].includes(user.role)) {
+      user.role = 'publisher';
+      dirty = true;
+    }
+    if (dirty) await user.save();
+
+    if (normalizeRole(user) === 'publisher') {
+      const existing = await AgentProfile.findOne({ user: user._id });
+      if (!existing) await AgentProfile.create({ user: user._id });
     }
 
     const token = signToken(user);
@@ -187,12 +206,15 @@ router.post('/google', async (req, res) => {
         authProvider: 'google',
         role,
       });
-      if (role === 'agent') {
+      if (role === 'publisher') {
         await AgentProfile.create({ user: user._id });
       }
+    } else if (['agent', 'owner', 'sales'].includes(user.role)) {
+      user.role = 'publisher';
+      await user.save();
     }
 
-    if (normalizeRole(user) === 'agent') {
+    if (normalizeRole(user) === 'publisher') {
       const existing = await AgentProfile.findOne({ user: user._id });
       if (!existing) await AgentProfile.create({ user: user._id });
     }

@@ -84,15 +84,21 @@ export function AuthProvider({ children }) {
     return data.user;
   }, [persistSession]);
 
+  const isPublisher =
+    user?.role === 'publisher' ||
+    user?.role === 'agent' ||
+    user?.role === 'owner' ||
+    user?.role === 'sales';
+
   const refreshProfileFlag = useCallback(async () => {
-    if (!token || user?.role !== 'agent') return;
+    if (!token || !isPublisher) return;
     try {
       const { data } = await api.get('/api/agents/me');
       await updateUser({ onboardingComplete: !!data.onboardingComplete });
     } catch {
       // ignore
     }
-  }, [token, user?.role, updateUser]);
+  }, [token, isPublisher, updateUser]);
 
   return (
     <AuthContext.Provider
@@ -103,7 +109,7 @@ export function AuthProvider({ children }) {
         booting,
         isAuthenticated: !!token,
         role: user?.role,
-        needsOnboarding: user?.role === 'agent' && !user?.onboardingComplete,
+        needsOnboarding: isPublisher && !user?.onboardingComplete,
         login,
         register,
         loginWithGoogle,

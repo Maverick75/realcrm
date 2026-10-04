@@ -1,12 +1,12 @@
 # RealCRM — Real Estate Matching
 
-CRM that **matches buyer requirements to agents** and lets **property owners publish listings**.
+Four-persona real-estate operations app (Management Service persona planned next).
 
-- **Admin** — capture buyer needs, rank agents (ratings + inventory fit), assign / WhatsApp-share
-- **Agent / Dealer** — same lead capture + match/share; inventory, WhatsApp, Instagram Reels; serve assigned leads
-- **Property Owner** — publish Sale / Rent / Lease listings with photos and editable T&Cs
-- **Buyer care** — lead-generator follow-ups + **split commission** (total % × lead-gen share %; rest to serving agent)
-- **Backend:** Node.js + Express + MongoDB + JWT (+ optional Google Sign-In, OpenAI, Meta Graph)
+- **Publisher** (Owner / Agent) — one login; post **as Agent** (inventory) or **as Owner** (T&Cs + publish); leads, match, WhatsApp, Instagram
+- **Customer** — browse available listings, send enquiries
+- **Business Owner** (`admin`) — run matching, publishers directory, buyer CRM
+- **Management Service** — *deferred* (property supervisor / services)
+- **Backend:** Node.js + Express + MongoDB + JWT (+ optional Google Sign-In, OpenAI, Meta Graph, S3)
 - **Frontend:** React Native (Expo) for Android
 
 ```
@@ -16,13 +16,25 @@ realcrm/
 └── docker-compose.yml
 ```
 
-## Roles
+## Personas / roles
 
-| Role | How to get it | App home |
-|------|---------------|----------|
-| **admin** | Register/login with `ADMIN_EMAIL` from `.env` (default `admin@realcrm.app`) | Requirements → match → assign; Agents directory; Buyers |
-| **agent** | Register as **Agent** (default) or Google with Agent selected | Onboarding → Inventory + Leads (created & assigned) + Profile |
-| **owner** | Register as **Property Owner** (or Google with Owner selected) | My Listings + Profile |
+| Persona | Role key | How to get it | App home |
+|---------|----------|---------------|----------|
+| **Business Owner** | `admin` | Register/login with `ADMIN_EMAIL` (default `admin@realcrm.app`) | Match → Publishers → Buyers |
+| **Publisher** | `publisher` | Register as **Publisher** (default) | Onboarding → My Posts (Agent or Owner) + Leads + Profile |
+| **Customer** | `customer` | Register as **Customer** | Browse → Enquiries → Profile |
+| **Management Service** | — | Not in this release | — |
+
+Legacy `agent` / `owner` accounts migrate to `publisher` on login.
+
+### Customer marketplace
+
+1. Register as **Customer**  
+2. **Browse** Available listings (filters: listing type, property type, area)  
+3. Open a listing → **Send enquiry**  
+4. Track status under **My enquiries**  
+
+APIs: `GET /api/marketplace/listings`, `POST /api/marketplace/enquiries`, `GET /api/marketplace/enquiries/mine`.
 
 ### Lead capture, match + share, split commission
 
@@ -89,6 +101,8 @@ npm install
 npx expo start --android
 ```
 
+The mobile app uses Expo SDK 57. Use an Expo Go version compatible with SDK 57; if your phone cannot connect to the development server over local Wi-Fi, start it with `npx expo start --tunnel`.
+
 Emulator API URL: `http://10.0.2.2:5000` (Server settings on Login).
 
 ## Smoke test (happy path)
@@ -102,7 +116,10 @@ Emulator API URL: `http://10.0.2.2:5000` (Server settings on Login).
 
 | Method | Path | Role |
 |--------|------|------|
-| POST | `/api/auth/register` `/login` `/google` | Public (`role`: `agent` \| `owner`) |
+| POST | `/api/auth/register` `/login` `/google` | Public (`role`: `publisher` \| `customer`) |
+| GET | `/api/marketplace/listings` | Customer / Publisher / Admin |
+| POST | `/api/marketplace/enquiries` | Customer |
+| GET | `/api/marketplace/enquiries/mine` | Customer |
 | GET/PUT | `/api/agents/me` | Agent |
 | GET | `/api/agents` | Admin |
 | GET | `/api/zones` | Auth |

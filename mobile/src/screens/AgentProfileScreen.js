@@ -13,7 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
 import api from '../api/client';
 import LoadingOverlay from '../components/LoadingOverlay';
-import { ZoneChipsWrap } from '../components/ZonePicker';
+import ZonePicker from '../components/ZonePicker';
 import ZoneMapPreview from '../components/ZoneMapPreview';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing } from '../constants/theme';
@@ -189,7 +189,13 @@ export default function AgentProfileScreen() {
         />
 
         <Text style={styles.label}>Areas served</Text>
-        <ZoneChipsWrap zones={zones} selectedIds={selectedZones} onChange={setSelectedZones} />
+        <ZonePicker
+          zones={zones}
+          selectedIds={selectedZones}
+          onChange={setSelectedZones}
+          multi
+          placeholder="Select areas served"
+        />
         <ZoneMapPreview zones={zones} selectedIds={selectedZones} height={200} />
 
         <Text style={styles.section}>Your OpenAI credits (LLM)</Text>

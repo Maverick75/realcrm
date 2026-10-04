@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import AgentOnboardingScreen from '../screens/AgentOnboardingScreen';
-import InventoryScreen from '../screens/InventoryScreen';
+import PublisherPostsScreen from '../screens/PublisherPostsScreen';
 import PropertyFormScreen from '../screens/PropertyFormScreen';
 import AgentProfileScreen from '../screens/AgentProfileScreen';
 import RequirementsScreen from '../screens/RequirementsScreen';
@@ -18,19 +18,21 @@ import AgentDetailScreen from '../screens/AgentDetailScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import CustomerFormScreen from '../screens/CustomerFormScreen';
 import CustomerDetailScreen from '../screens/CustomerDetailScreen';
-import OwnerListingsScreen from '../screens/OwnerListingsScreen';
 import OwnerListingFormScreen from '../screens/OwnerListingFormScreen';
-import OwnerProfileScreen from '../screens/OwnerProfileScreen';
+import CustomerBrowseScreen from '../screens/CustomerBrowseScreen';
+import CustomerListingDetailScreen from '../screens/CustomerListingDetailScreen';
+import CustomerEnquiriesScreen from '../screens/CustomerEnquiriesScreen';
+import CustomerProfileScreen from '../screens/CustomerProfileScreen';
 import { colors } from '../constants/theme';
 
 const AuthStackNav = createNativeStackNavigator();
-const AgentStackNav = createNativeStackNavigator();
+const PublisherStackNav = createNativeStackNavigator();
 const AdminStackNav = createNativeStackNavigator();
-const OwnerStackNav = createNativeStackNavigator();
+const CustomerStackNav = createNativeStackNavigator();
 const OnboardingStackNav = createNativeStackNavigator();
-const AgentTab = createBottomTabNavigator();
+const PublisherTab = createBottomTabNavigator();
 const AdminTab = createBottomTabNavigator();
-const OwnerTab = createBottomTabNavigator();
+const CustomerTab = createBottomTabNavigator();
 
 const tabScreenOptions = {
   headerShown: false,
@@ -50,25 +52,25 @@ function AuthStack() {
   );
 }
 
-function AgentTabs() {
+function PublisherTabs() {
   return (
-    <AgentTab.Navigator screenOptions={tabScreenOptions}>
-      <AgentTab.Screen
-        name="InventoryTab"
-        component={InventoryScreen}
-        options={{ title: 'Inventory', tabBarLabel: 'Inventory' }}
+    <PublisherTab.Navigator screenOptions={tabScreenOptions}>
+      <PublisherTab.Screen
+        name="PostsTab"
+        component={PublisherPostsScreen}
+        options={{ title: 'My Posts', tabBarLabel: 'Posts' }}
       />
-      <AgentTab.Screen
+      <PublisherTab.Screen
         name="AssignedReqs"
         component={RequirementsScreen}
         options={{ title: 'Leads', tabBarLabel: 'Leads' }}
       />
-      <AgentTab.Screen
+      <PublisherTab.Screen
         name="ProfileTab"
         component={AgentProfileScreen}
         options={{ title: 'Profile', tabBarLabel: 'Profile' }}
       />
-    </AgentTab.Navigator>
+    </PublisherTab.Navigator>
   );
 }
 
@@ -83,7 +85,7 @@ function AdminTabs() {
       <AdminTab.Screen
         name="AgentsTab"
         component={AgentsDirectoryScreen}
-        options={{ title: 'Agents', tabBarLabel: 'Agents' }}
+        options={{ title: 'Publishers', tabBarLabel: 'Publishers' }}
       />
       <AdminTab.Screen
         name="CustomersTab"
@@ -94,55 +96,67 @@ function AdminTabs() {
   );
 }
 
-function OwnerTabs() {
+function CustomerTabs() {
   return (
-    <OwnerTab.Navigator screenOptions={tabScreenOptions}>
-      <OwnerTab.Screen
-        name="OwnerListingsTab"
-        component={OwnerListingsScreen}
-        options={{ title: 'My Listings', tabBarLabel: 'Listings' }}
+    <CustomerTab.Navigator screenOptions={tabScreenOptions}>
+      <CustomerTab.Screen
+        name="CustomerBrowseTab"
+        component={CustomerBrowseScreen}
+        options={{ title: 'Browse', tabBarLabel: 'Browse' }}
       />
-      <OwnerTab.Screen
-        name="OwnerProfileTab"
-        component={OwnerProfileScreen}
+      <CustomerTab.Screen
+        name="CustomerEnquiriesTab"
+        component={CustomerEnquiriesScreen}
+        options={{ title: 'Enquiries', tabBarLabel: 'Enquiries' }}
+      />
+      <CustomerTab.Screen
+        name="CustomerProfileTab"
+        component={CustomerProfileScreen}
         options={{ title: 'Profile', tabBarLabel: 'Profile' }}
       />
-    </OwnerTab.Navigator>
+    </CustomerTab.Navigator>
   );
 }
 
-function AgentStack() {
+function PublisherStack() {
   return (
-    <AgentStackNav.Navigator
+    <PublisherStackNav.Navigator
       screenOptions={{
         headerStyle: { backgroundColor: colors.primary },
         headerTintColor: '#fff',
         headerTitleStyle: { fontWeight: '700' },
       }}
     >
-      <AgentStackNav.Screen
-        name="AgentHome"
-        component={AgentTabs}
+      <PublisherStackNav.Screen
+        name="PublisherHome"
+        component={PublisherTabs}
         options={{ headerShown: false }}
       />
-      <AgentStackNav.Screen
+      <PublisherStackNav.Screen
         name="PropertyForm"
         component={PropertyFormScreen}
         options={({ route }) => ({
-          title: route.params?.mode === 'edit' ? 'Edit property' : 'Add property',
+          title: route.params?.mode === 'edit' ? 'Edit property' : 'Add as Agent',
         })}
       />
-      <AgentStackNav.Screen
+      <PublisherStackNav.Screen
+        name="OwnerListingForm"
+        component={OwnerListingFormScreen}
+        options={({ route }) => ({
+          title: route.params?.mode === 'edit' ? 'Edit owner listing' : 'Post as Owner',
+        })}
+      />
+      <PublisherStackNav.Screen
         name="RequirementForm"
         component={RequirementFormScreen}
         options={{ title: 'New lead' }}
       />
-      <AgentStackNav.Screen
+      <PublisherStackNav.Screen
         name="RequirementDetail"
         component={RequirementDetailScreen}
         options={{ title: 'Lead detail' }}
       />
-    </AgentStackNav.Navigator>
+    </PublisherStackNav.Navigator>
   );
 }
 
@@ -173,7 +187,7 @@ function AdminStack() {
       <AdminStackNav.Screen
         name="AgentDetail"
         component={AgentDetailScreen}
-        options={{ title: 'Agent' }}
+        options={{ title: 'Publisher' }}
       />
       <AdminStackNav.Screen
         name="CustomerForm"
@@ -191,28 +205,26 @@ function AdminStack() {
   );
 }
 
-function OwnerStack() {
+function CustomerStack() {
   return (
-    <OwnerStackNav.Navigator
+    <CustomerStackNav.Navigator
       screenOptions={{
         headerStyle: { backgroundColor: colors.primary },
         headerTintColor: '#fff',
         headerTitleStyle: { fontWeight: '700' },
       }}
     >
-      <OwnerStackNav.Screen
-        name="OwnerHome"
-        component={OwnerTabs}
+      <CustomerStackNav.Screen
+        name="CustomerHome"
+        component={CustomerTabs}
         options={{ headerShown: false }}
       />
-      <OwnerStackNav.Screen
-        name="OwnerListingForm"
-        component={OwnerListingFormScreen}
-        options={({ route }) => ({
-          title: route.params?.mode === 'edit' ? 'Edit listing' : 'New listing',
-        })}
+      <CustomerStackNav.Screen
+        name="CustomerListingDetail"
+        component={CustomerListingDetailScreen}
+        options={{ title: 'Listing' }}
       />
-    </OwnerStackNav.Navigator>
+    </CustomerStackNav.Navigator>
   );
 }
 
@@ -225,7 +237,7 @@ function OnboardingStack() {
 }
 
 function resolveRole(role) {
-  if (role === 'sales') return 'agent';
+  if (role === 'sales' || role === 'agent' || role === 'owner') return 'publisher';
   return role;
 }
 
@@ -243,14 +255,16 @@ export default function AppNavigator() {
 
   let body = <AuthStack />;
   if (isAuthenticated) {
-    if (normalizedRole === 'agent' && needsOnboarding) {
+    if (normalizedRole === 'publisher' && needsOnboarding) {
       body = <OnboardingStack />;
     } else if (normalizedRole === 'admin') {
       body = <AdminStack />;
-    } else if (normalizedRole === 'owner') {
-      body = <OwnerStack />;
+    } else if (normalizedRole === 'customer') {
+      body = <CustomerStack />;
+    } else if (normalizedRole === 'publisher') {
+      body = <PublisherStack />;
     } else {
-      body = <AgentStack />;
+      body = <PublisherStack />;
     }
   }
 
