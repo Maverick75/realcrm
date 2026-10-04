@@ -1,22 +1,7 @@
 // Android emulator → host machine localhost
 export const DEFAULT_API_URL = 'http://10.0.2.2:5000';
 
-export const STATUS_COLORS = {
-  Lead: '#3B82F6',
-  Contacted: '#F59E0B',
-  Customer: '#10B981',
-  Lost: '#EF4444',
-  Open: '#3B82F6',
-  Matched: '#F59E0B',
-  Assigned: '#10B981',
-  Closed: '#64748B',
-  Available: '#10B981',
-  Hold: '#F59E0B',
-  Deal: '#7C3AED',
-  Blocked: '#64748B',
-  Sold: '#EF4444',
-  Draft: '#94A3B8',
-};
+export { statusColors as STATUS_COLORS } from './theme';
 
 export const INVENTORY_STATUS_ORDER = [
   'Available',

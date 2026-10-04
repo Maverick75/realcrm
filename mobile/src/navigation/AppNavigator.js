@@ -1,8 +1,9 @@
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -34,14 +35,37 @@ const PublisherTab = createBottomTabNavigator();
 const AdminTab = createBottomTabNavigator();
 const CustomerTab = createBottomTabNavigator();
 
+const navTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: colors.primary,
+    background: colors.background,
+    card: colors.surface,
+    text: colors.text,
+    border: colors.border,
+  },
+};
+
 const tabScreenOptions = {
   headerShown: false,
   tabBarActiveTintColor: colors.primary,
   tabBarInactiveTintColor: colors.textMuted,
-  tabBarLabelStyle: { fontSize: 12, fontWeight: '700', marginBottom: 4 },
-  tabBarStyle: { height: 56, paddingTop: 4 },
-  tabBarIcon: () => null,
+  tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
 };
+
+const stackScreenOptions = {
+  headerStyle: { backgroundColor: colors.surface },
+  headerTintColor: colors.text,
+  headerTitleStyle: { fontWeight: '600', fontSize: 18 },
+  headerShadowVisible: false,
+  headerBackButtonDisplayMode: 'minimal',
+};
+
+// Filled icon when focused, outline otherwise
+const tabIcon = (name) => ({ focused, color, size }) => (
+  <Ionicons name={focused ? name : `${name}-outline`} size={size} color={color} />
+);
 
 function AuthStack() {
   return (
@@ -58,17 +82,17 @@ function PublisherTabs() {
       <PublisherTab.Screen
         name="PostsTab"
         component={PublisherPostsScreen}
-        options={{ title: 'My Posts', tabBarLabel: 'Posts' }}
+        options={{ title: 'My Posts', tabBarLabel: 'Posts', tabBarIcon: tabIcon('home') }}
       />
       <PublisherTab.Screen
         name="AssignedReqs"
         component={RequirementsScreen}
-        options={{ title: 'Leads', tabBarLabel: 'Leads' }}
+        options={{ title: 'Leads', tabBarLabel: 'Leads', tabBarIcon: tabIcon('people') }}
       />
       <PublisherTab.Screen
         name="ProfileTab"
         component={AgentProfileScreen}
-        options={{ title: 'Profile', tabBarLabel: 'Profile' }}
+        options={{ title: 'Profile', tabBarLabel: 'Profile', tabBarIcon: tabIcon('person') }}
       />
     </PublisherTab.Navigator>
   );
@@ -80,17 +104,17 @@ function AdminTabs() {
       <AdminTab.Screen
         name="RequirementsTab"
         component={RequirementsScreen}
-        options={{ title: 'Match', tabBarLabel: 'Match' }}
+        options={{ title: 'Match', tabBarLabel: 'Match', tabBarIcon: tabIcon('git-compare') }}
       />
       <AdminTab.Screen
         name="AgentsTab"
         component={AgentsDirectoryScreen}
-        options={{ title: 'Publishers', tabBarLabel: 'Publishers' }}
+        options={{ title: 'Publishers', tabBarLabel: 'Publishers', tabBarIcon: tabIcon('briefcase') }}
       />
       <AdminTab.Screen
         name="CustomersTab"
         component={DashboardScreen}
-        options={{ title: 'Buyers', tabBarLabel: 'Buyers' }}
+        options={{ title: 'Buyers', tabBarLabel: 'Buyers', tabBarIcon: tabIcon('people') }}
       />
     </AdminTab.Navigator>
   );
@@ -102,17 +126,17 @@ function CustomerTabs() {
       <CustomerTab.Screen
         name="CustomerBrowseTab"
         component={CustomerBrowseScreen}
-        options={{ title: 'Browse', tabBarLabel: 'Browse' }}
+        options={{ title: 'Browse', tabBarLabel: 'Browse', tabBarIcon: tabIcon('search') }}
       />
       <CustomerTab.Screen
         name="CustomerEnquiriesTab"
         component={CustomerEnquiriesScreen}
-        options={{ title: 'Enquiries', tabBarLabel: 'Enquiries' }}
+        options={{ title: 'Enquiries', tabBarLabel: 'Enquiries', tabBarIcon: tabIcon('chatbubbles') }}
       />
       <CustomerTab.Screen
         name="CustomerProfileTab"
         component={CustomerProfileScreen}
-        options={{ title: 'Profile', tabBarLabel: 'Profile' }}
+        options={{ title: 'Profile', tabBarLabel: 'Profile', tabBarIcon: tabIcon('person') }}
       />
     </CustomerTab.Navigator>
   );
@@ -121,11 +145,7 @@ function CustomerTabs() {
 function PublisherStack() {
   return (
     <PublisherStackNav.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.primary },
-        headerTintColor: '#fff',
-        headerTitleStyle: { fontWeight: '700' },
-      }}
+      screenOptions={stackScreenOptions}
     >
       <PublisherStackNav.Screen
         name="PublisherHome"
@@ -163,11 +183,7 @@ function PublisherStack() {
 function AdminStack() {
   return (
     <AdminStackNav.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.primary },
-        headerTintColor: '#fff',
-        headerTitleStyle: { fontWeight: '700' },
-      }}
+      screenOptions={stackScreenOptions}
     >
       <AdminStackNav.Screen
         name="AdminHome"
@@ -208,11 +224,7 @@ function AdminStack() {
 function CustomerStack() {
   return (
     <CustomerStackNav.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.primary },
-        headerTintColor: '#fff',
-        headerTitleStyle: { fontWeight: '700' },
-      }}
+      screenOptions={stackScreenOptions}
     >
       <CustomerStackNav.Screen
         name="CustomerHome"
@@ -247,7 +259,7 @@ export default function AppNavigator() {
 
   if (booting) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -268,5 +280,5 @@ export default function AppNavigator() {
     }
   }
 
-  return <NavigationContainer>{body}</NavigationContainer>;
+  return <NavigationContainer theme={navTheme}>{body}</NavigationContainer>;
 }
