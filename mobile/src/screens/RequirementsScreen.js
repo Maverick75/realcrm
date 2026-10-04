@@ -10,11 +10,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import Card from '../components/Card';
+import EmptyState from '../components/EmptyState';
+import Fab from '../components/Fab';
+import ScreenHeader from '../components/ScreenHeader';
 import StatusBadge from '../components/StatusBadge';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { useAuth } from '../context/AuthContext';
-import { colors, spacing } from '../constants/theme';
+import { colors, radius, spacing, TOUCH_TARGET, type } from '../constants/theme';
 
 function formatBudget(min, max) {
   const fmt = (n) => (n == null ? null : `₹${Number(n).toLocaleString('en-IN')}`);
@@ -53,17 +58,20 @@ export default function RequirementsScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <LoadingOverlay visible={loading} />
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>
-            {user?.role === 'admin' ? 'Buyer requirements' : 'My leads'}
-          </Text>
-          <Text style={styles.sub}>Capture needs · match · keep buyers happy</Text>
-        </View>
-        <Pressable onPress={logout} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title={user?.role === 'admin' ? 'Buyer requirements' : 'My leads'}
+        subtitle="Capture needs · match · keep buyers happy"
+        right={
+          <Pressable
+            onPress={logout}
+            accessibilityRole="button"
+            accessibilityLabel="Log out"
+            style={({ pressed }) => [styles.logoutBtn, pressed && styles.logoutPressed]}
+          >
+            <Ionicons name="log-out-outline" size={22} color={colors.textMuted} />
+          </Pressable>
+        }
+      />
 
       <FlatList
         data={items}
@@ -74,19 +82,21 @@ export default function RequirementsScreen({ navigation }) {
         }
         ListEmptyComponent={
           !loading ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>No requirements yet</Text>
-              <Text style={styles.emptyText}>Capture a buyer need to find matching agents</Text>
-            </View>
+            <EmptyState
+              icon="clipboard-outline"
+              title="No requirements yet"
+              hint="Capture a buyer need to find matching agents"
+            />
           ) : null
         }
         renderItem={({ item }) => (
-          <Pressable
-            style={styles.card}
+          <Card
             onPress={() => navigation.navigate('RequirementDetail', { requirementId: item._id })}
           >
             <View style={styles.cardTop}>
-              <Text style={styles.cardTitle}>{item.customer?.name || 'Buyer'}</Text>
+              <Text style={styles.cardTitle} numberOfLines={2}>
+                {item.customer?.name || 'Buyer'}
+              </Text>
               <StatusBadge status={item.status} />
             </View>
             <Text style={styles.meta}>
@@ -102,7 +112,7 @@ export default function RequirementsScreen({ navigation }) {
             {item.assignedAgent && (
               <Text style={styles.assigned}>Agent: {item.assignedAgent.name}</Text>
             )}
-          </Pressable>
+          </Card>
         )}
       />
 
@@ -110,12 +120,10 @@ export default function RequirementsScreen({ navigation }) {
         user?.role === 'agent' ||
         user?.role === 'publisher' ||
         user?.role === 'owner') && (
-        <Pressable
-          style={styles.fab}
+        <Fab
           onPress={() => navigation.navigate('RequirementForm')}
-        >
-          <Text style={styles.fabText}>+</Text>
-        </Pressable>
+          label="Add buyer requirement"
+        />
       )}
     </SafeAreaView>
   );
@@ -123,52 +131,24 @@ export default function RequirementsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+  logoutBtn: {
+    width: TOUCH_TARGET,
+    height: TOUCH_TARGET,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutPressed: { backgroundColor: colors.primaryLight },
+  list: { paddingHorizontal: spacing.lg, paddingBottom: 104 },
+  cardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.sm,
   },
-  title: { fontSize: 22, fontWeight: '800', color: colors.text },
-  sub: { color: colors.textMuted, marginTop: 2 },
-  logoutBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: colors.dangerLight,
-  },
-  logoutText: { color: colors.danger, fontWeight: '700' },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: 100 },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.text, marginRight: 8 },
-  meta: { marginTop: 6, color: colors.textMuted, fontSize: 13 },
-  zones: { marginTop: 4, color: colors.primaryDark, fontWeight: '600' },
-  budget: { marginTop: 6, fontWeight: '700', color: colors.text },
-  assigned: { marginTop: 4, color: colors.textMuted, fontSize: 12 },
-  empty: { marginTop: 60, alignItems: 'center' },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
-  emptyText: { marginTop: 6, color: colors.textMuted, textAlign: 'center', paddingHorizontal: 24 },
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 28,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-  },
-  fabText: { color: '#fff', fontSize: 32, lineHeight: 34 },
+  cardTitle: { ...type.body, flex: 1, fontWeight: '700' },
+  meta: { ...type.secondary, marginTop: spacing.sm },
+  zones: { ...type.secondary, marginTop: spacing.xs },
+  budget: { ...type.body, marginTop: spacing.sm, fontWeight: '700' },
+  assigned: { ...type.secondary, marginTop: spacing.xs },
 });

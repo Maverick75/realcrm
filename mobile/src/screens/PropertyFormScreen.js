@@ -6,11 +6,14 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../api/client';
+import Button from '../components/Button';
+import ChipRow from '../components/ChipRow';
+import Field from '../components/Field';
 import LoadingOverlay from '../components/LoadingOverlay';
 import ZonePicker from '../components/ZonePicker';
 import {
@@ -22,7 +25,8 @@ import {
   RESIDENCE_STYLES,
   VILLA_TYPES,
 } from '../constants/config';
-import { colors, spacing } from '../constants/theme';
+// `type` is a state variable in this screen, so the theme text styles are aliased
+import { colors, radius, spacing, type as textStyles } from '../constants/theme';
 import { sharePropertyOnWhatsApp } from '../utils/whatsappShare';
 import { useAuth } from '../context/AuthContext';
 
@@ -317,28 +321,17 @@ export default function PropertyFormScreen({ navigation, route }) {
     ]);
   };
 
-  const ChipRow = ({ options, value, onSelect, labels, allowClear = false }) => (
-    <View style={styles.chipRow}>
-      {options.map((opt) => (
-        <Pressable
-          key={opt}
-          onPress={() => onSelect(allowClear && value === opt ? '' : opt)}
-          style={[styles.chip, value === opt && styles.chipActive]}
-        >
-          <Text style={[styles.chipText, value === opt && styles.chipTextActive]}>
-            {labels?.[opt] || opt}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
-  );
+  // Tapping the selected chip again clears it
+  const toggleOf = (current, setValue) => (opt) => setValue(current === opt ? '' : opt);
 
   return (
     <View style={styles.container}>
       <LoadingOverlay visible={loading} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.label}>Title *</Text>
-        <TextInput style={styles.input} value={title} onChangeText={setTitle} />
+        <Text style={[styles.section, styles.sectionFirst]} accessibilityRole="header">
+          Basics
+        </Text>
+        <Field label="Title *" value={title} onChangeText={setTitle} />
 
         <Text style={styles.label}>Property type</Text>
         <ChipRow
@@ -357,113 +350,107 @@ export default function PropertyFormScreen({ navigation, route }) {
             <ChipRow
               options={RESIDENCE_STYLES}
               value={residenceStyle}
-              onSelect={setResidenceStyle}
-              allowClear
+              onSelect={toggleOf(residenceStyle, setResidenceStyle)}
             />
           </>
         )}
 
         {type === 'Apartment' && (
           <>
-            <Text style={styles.section}>Flat details</Text>
+            <Text style={styles.section} accessibilityRole="header">
+              Flat details
+            </Text>
             <Text style={styles.label}>Facing</Text>
             <ChipRow
               options={FACING_OPTIONS}
               value={facing}
-              onSelect={setFacing}
-              allowClear
+              onSelect={toggleOf(facing, setFacing)}
             />
-            <Text style={styles.label}>Carpet area (sqft)</Text>
-            <TextInput
-              style={styles.input}
+            <Field
+              label="Carpet area (sqft)"
               keyboardType="number-pad"
               value={carpetArea}
               onChangeText={setCarpetArea}
               placeholder="e.g. 1250"
-              placeholderTextColor={colors.textMuted}
             />
-            <Text style={styles.label}>BHK</Text>
-            <TextInput
-              style={styles.input}
+            <Field
+              label="BHK"
               keyboardType="number-pad"
               value={bhk}
               onChangeText={setBhk}
               placeholder="e.g. 3"
-              placeholderTextColor={colors.textMuted}
             />
           </>
         )}
 
         {type === 'Commercial' && (
           <>
-            <Text style={styles.section}>Commercial details</Text>
-            <Text style={styles.label}>Area (sqft)</Text>
-            <TextInput
-              style={styles.input}
+            <Text style={styles.section} accessibilityRole="header">
+              Commercial details
+            </Text>
+            <Field
+              label="Area (sqft)"
               keyboardType="number-pad"
               value={areaSqft}
               onChangeText={setAreaSqft}
               placeholder="e.g. 2400"
-              placeholderTextColor={colors.textMuted}
             />
           </>
         )}
 
         {type === 'Villa' && (
           <>
-            <Text style={styles.section}>Villa details</Text>
+            <Text style={styles.section} accessibilityRole="header">
+              Villa details
+            </Text>
             <Text style={styles.label}>Villa type</Text>
             <ChipRow
               options={VILLA_TYPES}
               value={villaType}
-              onSelect={setVillaType}
-              allowClear
+              onSelect={toggleOf(villaType, setVillaType)}
             />
-            <Text style={styles.label}>Built-up area (sqft)</Text>
-            <TextInput
-              style={styles.input}
+            <Field
+              label="Built-up area (sqft)"
               keyboardType="number-pad"
               value={areaSqft}
               onChangeText={setAreaSqft}
               placeholder="e.g. 3200"
-              placeholderTextColor={colors.textMuted}
             />
           </>
         )}
 
         {type === 'Plot' && (
           <>
-            <Text style={styles.section}>Plot details</Text>
+            <Text style={styles.section} accessibilityRole="header">
+              Plot details
+            </Text>
             <Text style={styles.label}>Facing</Text>
             <ChipRow
               options={FACING_OPTIONS}
               value={facing}
-              onSelect={setFacing}
-              allowClear
+              onSelect={toggleOf(facing, setFacing)}
             />
-            <Text style={styles.label}>Size</Text>
-            <TextInput
-              style={styles.input}
+            <Field
+              label="Size"
               value={plotSize}
               onChangeText={setPlotSize}
               placeholder="e.g. 200 sq yards"
-              placeholderTextColor={colors.textMuted}
             />
-            <Text style={styles.label}>Area (sqft)</Text>
-            <TextInput
-              style={styles.input}
+            <Field
+              label="Area (sqft)"
               keyboardType="number-pad"
               value={areaSqft}
               onChangeText={setAreaSqft}
               placeholder="e.g. 1800"
-              placeholderTextColor={colors.textMuted}
             />
           </>
         )}
 
-        <Text style={styles.label}>Price (₹) *</Text>
-        <TextInput
-          style={styles.input}
+        <Text style={styles.section} accessibilityRole="header">
+          Price & location
+        </Text>
+        <Field
+          label="Price (₹) *"
           keyboardType="number-pad"
           value={price}
           onChangeText={setPrice}
@@ -478,20 +465,37 @@ export default function PropertyFormScreen({ navigation, route }) {
           placeholder="Select area"
         />
 
+        <Field label="Address" value={address} onChangeText={setAddress} />
+
         <Text style={styles.label}>Status</Text>
         <ChipRow options={PROPERTY_STATUSES} value={status} onSelect={setStatus} />
 
-        <Text style={styles.label}>Photos</Text>
+        <Field label="Notes" multiline value={notes} onChangeText={setNotes} />
+
+        <Text style={styles.section} accessibilityRole="header">
+          Photos
+        </Text>
         <View style={styles.imageGrid}>
           {images.map((url) => (
             <View key={url} style={styles.imageWrap}>
               <Image source={{ uri: url }} style={styles.thumb} />
-              <Pressable style={styles.removeImg} onPress={() => removeImage(url)}>
-                <Text style={styles.removeImgText}>×</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Remove photo"
+                hitSlop={10}
+                style={({ pressed }) => [styles.removeImg, pressed && styles.pressed]}
+                onPress={() => removeImage(url)}
+              >
+                <Ionicons name="close" size={18} color={colors.text} />
               </Pressable>
             </View>
           ))}
-          <Pressable style={styles.addImg} onPress={pickAndUploadImages}>
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.addImg, pressed && styles.pressed]}
+            onPress={pickAndUploadImages}
+          >
+            <Ionicons name="camera-outline" size={24} color={colors.primary} />
             <Text style={styles.addImgText}>+ Add</Text>
           </Pressable>
         </View>
@@ -499,54 +503,42 @@ export default function PropertyFormScreen({ navigation, route }) {
           <Text style={styles.hint}>Save the property first, then add photos.</Text>
         ) : null}
 
-        <Text style={styles.label}>Address</Text>
-        <TextInput style={styles.input} value={address} onChangeText={setAddress} />
-
-        <Text style={styles.label}>Notes</Text>
-        <TextInput
-          style={[styles.input, styles.notes]}
-          multiline
-          value={notes}
-          onChangeText={setNotes}
-          textAlignVertical="top"
+        <Button
+          title={`${propertyId ? 'Update' : 'Add'} property`}
+          onPress={onSave}
+          style={styles.submit}
         />
-
-        <Pressable style={styles.button} onPress={onSave}>
-          <Text style={styles.buttonText}>
-            {propertyId ? 'Update' : 'Add'} property
-          </Text>
-        </Pressable>
 
         {propertyId && (
           <>
-            <Text style={styles.section}>Share & publish</Text>
-            <Pressable style={styles.secondaryBtn} onPress={onWhatsApp}>
-              <Text style={styles.secondaryText}>Share on WhatsApp</Text>
-            </Pressable>
-
-            <Pressable style={styles.secondaryBtn} onPress={pickAndUploadVideo}>
-              <Text style={styles.secondaryText}>
-                {property?.videoUrl ? 'Replace reel video clip' : 'Upload reel video clip'}
-              </Text>
-            </Pressable>
+            <Text style={styles.section} accessibilityRole="header">
+              Share & publish
+            </Text>
+            <Button
+              variant="secondary"
+              title="Share on WhatsApp"
+              onPress={onWhatsApp}
+              style={styles.action}
+            />
+            <Button
+              variant="secondary"
+              title={property?.videoUrl ? 'Replace reel video clip' : 'Upload reel video clip'}
+              onPress={pickAndUploadVideo}
+              style={styles.action}
+            />
             {!!property?.videoUrl && (
               <Text style={styles.hint} numberOfLines={2}>
                 Video: {property.videoUrl}
               </Text>
             )}
-
-            <Pressable style={styles.secondaryBtn} onPress={generateCaption}>
-              <Text style={styles.secondaryText}>Generate caption (your OpenAI key)</Text>
-            </Pressable>
-
-            <Text style={styles.label}>Instagram caption</Text>
-            <TextInput
-              style={[styles.input, styles.notes]}
-              multiline
-              value={caption}
-              onChangeText={setCaption}
-              textAlignVertical="top"
+            <Button
+              variant="secondary"
+              title="Generate caption (your OpenAI key)"
+              onPress={generateCaption}
+              style={styles.action}
             />
+
+            <Field label="Instagram caption" multiline value={caption} onChangeText={setCaption} />
             {!!script && (
               <>
                 <Text style={styles.label}>Spoken script</Text>
@@ -554,13 +546,13 @@ export default function PropertyFormScreen({ navigation, route }) {
               </>
             )}
 
-            <Pressable style={styles.button} onPress={publishReel}>
-              <Text style={styles.buttonText}>Publish Reel to Instagram</Text>
-            </Pressable>
-
-            <Pressable style={styles.dangerBtn} onPress={onDelete}>
-              <Text style={styles.dangerText}>Delete</Text>
-            </Pressable>
+            <Button
+              variant="secondary"
+              title="Publish Reel to Instagram"
+              onPress={publishReel}
+              style={styles.submit}
+            />
+            <Button variant="danger" title="Delete" onPress={onDelete} style={styles.action} />
             <Text style={styles.footerHint}>
               Agent: {user?.name}. Connect Instagram under Profile before publishing.
             </Text>
@@ -571,73 +563,51 @@ export default function PropertyFormScreen({ navigation, route }) {
   );
 }
 
+const THUMB_SIZE = 88;
+const REMOVE_SIZE = 28;
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: 40 },
-  section: {
-    marginTop: spacing.lg,
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.text,
-  },
+  content: { padding: spacing.lg, paddingBottom: 48 },
+  section: { ...textStyles.heading, marginTop: spacing.lg },
+  sectionFirst: { marginTop: 0 },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: spacing.xs,
     marginTop: spacing.md,
+    marginBottom: 6,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
-    backgroundColor: colors.surface,
-  },
-  notes: { minHeight: 90 },
   script: {
-    color: colors.textMuted,
-    lineHeight: 20,
+    ...textStyles.secondary,
     backgroundColor: colors.primaryLight,
     padding: spacing.md,
-    borderRadius: 10,
+    borderRadius: radius.control,
   },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap' },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    marginRight: 8,
-    marginBottom: 8,
+  imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  imageWrap: {
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: radius.control,
+    overflow: 'hidden',
   },
-  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
-  chipTextActive: { color: '#fff' },
-  imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  imageWrap: { width: 88, height: 88, borderRadius: 10, overflow: 'hidden' },
   thumb: { width: '100%', height: '100%' },
   removeImg: {
     position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    top: 4,
+    right: 4,
+    width: REMOVE_SIZE,
+    height: REMOVE_SIZE,
+    borderRadius: REMOVE_SIZE / 2,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  removeImgText: { color: '#fff', fontWeight: '800', fontSize: 14 },
   addImg: {
-    width: 88,
-    height: 88,
-    borderRadius: 10,
+    minWidth: THUMB_SIZE,
+    minHeight: THUMB_SIZE,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.control,
     borderWidth: 1,
     borderColor: colors.border,
     borderStyle: 'dashed',
@@ -645,31 +615,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.surface,
   },
-  addImgText: { color: colors.primary, fontWeight: '700' },
-  button: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-  buttonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  secondaryBtn: {
-    marginTop: spacing.sm,
-    borderRadius: 10,
-    paddingVertical: 13,
-    alignItems: 'center',
-    backgroundColor: colors.primaryLight,
-  },
-  secondaryText: { color: colors.primaryDark, fontWeight: '700' },
-  dangerBtn: {
-    marginTop: spacing.sm,
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderRadius: 10,
-    backgroundColor: colors.dangerLight,
-  },
-  dangerText: { color: colors.danger, fontWeight: '700' },
-  hint: { marginTop: 6, fontSize: 12, color: colors.textMuted },
-  footerHint: { marginTop: spacing.md, fontSize: 12, color: colors.textMuted },
+  addImgText: { fontSize: 14, fontWeight: '600', color: colors.primary, marginTop: 2 },
+  pressed: { opacity: 0.8 },
+  submit: { marginTop: spacing.lg },
+  action: { marginTop: spacing.sm },
+  hint: { ...textStyles.secondary, marginTop: 6 },
+  footerHint: { ...textStyles.secondary, marginTop: spacing.md },
 });

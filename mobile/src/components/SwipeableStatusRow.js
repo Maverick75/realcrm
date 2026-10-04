@@ -6,7 +6,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { colors } from '../constants/theme';
+import { colors, radius, type } from '../constants/theme';
 
 const ACTION_W = 88;
 const THRESHOLD = 56;
@@ -83,7 +83,7 @@ export default function SwipeableStatusRow({ children, onDeal, onBlocked, disabl
 const styles = StyleSheet.create({
   wrap: {
     marginBottom: 10,
-    borderRadius: 14,
+    borderRadius: radius.card,
     overflow: 'hidden',
   },
   actions: {
@@ -96,9 +96,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  blocked: { backgroundColor: '#64748B' },
-  deal: { backgroundColor: '#7C3AED' },
-  actionText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  blocked: { backgroundColor: colors.neutral },
+  deal: { backgroundColor: colors.accent },
+  actionText: { ...type.secondary, color: colors.onPrimary, fontWeight: '700' },
   foreground: {
     backgroundColor: colors.background,
   },

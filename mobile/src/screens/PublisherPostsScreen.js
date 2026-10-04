@@ -11,16 +11,44 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import Button from '../components/Button';
+import Card from '../components/Card';
+import EmptyState from '../components/EmptyState';
+import Fab from '../components/Fab';
+import ScreenHeader from '../components/ScreenHeader';
 import StatusBadge from '../components/StatusBadge';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { useAuth } from '../context/AuthContext';
-import { PROPERTY_TYPE_LABELS, STATUS_COLORS } from '../constants/config';
-import { colors, spacing } from '../constants/theme';
+import { PROPERTY_TYPE_LABELS } from '../constants/config';
+import { colors, radius, shadow, spacing, TOUCH_TARGET, type } from '../constants/theme';
+
+const THUMB = 76;
+const OPTION_MIN_HEIGHT = 56;
 
 function formatPrice(n) {
   if (n == null) return '—';
   return `₹${Number(n).toLocaleString('en-IN')}`;
+}
+
+function ChooserOption({ icon, title, hint, onPress }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+    >
+      <View style={styles.optionIcon}>
+        <Ionicons name={icon} size={22} color={colors.primary} />
+      </View>
+      <View style={styles.optionText}>
+        <Text style={styles.optionTitle}>{title}</Text>
+        <Text style={type.secondary}>{hint}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+    </Pressable>
+  );
 }
 
 export default function PublisherPostsScreen({ navigation }) {
@@ -74,17 +102,20 @@ export default function PublisherPostsScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <LoadingOverlay visible={loading} />
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>My posts</Text>
-          <Text style={styles.sub}>
-            {user?.name} · Agent {counts.agent} · Owner {counts.owner}
-          </Text>
-        </View>
-        <Pressable onPress={logout} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title="My posts"
+        subtitle={`${user?.name} · Agent ${counts.agent} · Owner ${counts.owner}`}
+        right={
+          <Pressable
+            onPress={logout}
+            accessibilityRole="button"
+            accessibilityLabel="Log out"
+            style={({ pressed }) => [styles.logoutBtn, pressed && styles.logoutPressed]}
+          >
+            <Ionicons name="log-out-outline" size={22} color={colors.textMuted} />
+          </Pressable>
+        }
+      />
 
       <FlatList
         data={items}
@@ -95,20 +126,19 @@ export default function PublisherPostsScreen({ navigation }) {
         }
         ListEmptyComponent={
           !loading ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>No posts yet</Text>
-              <Text style={styles.emptyText}>
-                Post as Agent (inventory) or as Owner (with T&Cs)
-              </Text>
-            </View>
+            <EmptyState
+              icon="home-outline"
+              title="No posts yet"
+              hint="Post as Agent (inventory) or as Owner (with T&Cs)"
+            />
           ) : null
         }
         renderItem={({ item }) => {
           const thumb = item.images?.[0];
-          const accent = STATUS_COLORS[item.status] || colors.border;
+          const isOwner = item.postAs === 'owner';
           return (
-            <Pressable
-              style={[styles.card, { borderLeftColor: accent }]}
+            <Card
+              style={styles.card}
               onPress={() => {
                 if (item.postAs === 'owner') {
                   navigation.navigate('OwnerListingForm', {
@@ -127,7 +157,7 @@ export default function PublisherPostsScreen({ navigation }) {
                 <Image source={{ uri: thumb }} style={styles.thumb} />
               ) : (
                 <View style={[styles.thumb, styles.thumbPh]}>
-                  <Text style={styles.thumbPhText}>No photo</Text>
+                  <Ionicons name="image-outline" size={24} color={colors.primary} />
                 </View>
               )}
               <View style={styles.main}>
@@ -138,14 +168,9 @@ export default function PublisherPostsScreen({ navigation }) {
                   <StatusBadge status={item.status} />
                 </View>
                 <View style={styles.badgeRow}>
-                  <View
-                    style={[
-                      styles.modeBadge,
-                      item.postAs === 'owner' ? styles.ownerBadge : styles.agentBadge,
-                    ]}
-                  >
-                    <Text style={styles.modeBadgeText}>
-                      {item.postAs === 'owner' ? 'Owner' : 'Agent'}
+                  <View style={styles.modeBadge}>
+                    <Text style={[styles.modeBadgeText, isOwner && styles.ownerBadgeText]}>
+                      {isOwner ? 'Owner' : 'Agent'}
                     </Text>
                   </View>
                   <Text style={styles.meta}>
@@ -155,136 +180,106 @@ export default function PublisherPostsScreen({ navigation }) {
                 <Text style={styles.zone}>{item.zone?.name || 'No area'}</Text>
                 <Text style={styles.price}>{formatPrice(item.price)}</Text>
               </View>
-            </Pressable>
+            </Card>
           );
         }}
       />
 
       {chooserOpen && (
-        <View style={styles.chooser}>
+        <Card style={styles.chooser}>
           <Text style={styles.chooserTitle}>Post property as</Text>
-          <Pressable
-            style={styles.chooserBtn}
+          <ChooserOption
+            icon="briefcase-outline"
+            title="Agent inventory"
+            hint="Matchable stock, Instagram, WhatsApp"
             onPress={() => {
               setChooserOpen(false);
               navigation.navigate('PropertyForm', { mode: 'create' });
             }}
-          >
-            <Text style={styles.chooserBtnText}>Agent inventory</Text>
-            <Text style={styles.chooserHint}>Matchable stock, Instagram, WhatsApp</Text>
-          </Pressable>
-          <Pressable
-            style={styles.chooserBtn}
+          />
+          <ChooserOption
+            icon="home-outline"
+            title="Property owner"
+            hint="T&Cs accept + publish to marketplace"
             onPress={() => {
               setChooserOpen(false);
               navigation.navigate('OwnerListingForm', { mode: 'create' });
             }}
-          >
-            <Text style={styles.chooserBtnText}>Property owner</Text>
-            <Text style={styles.chooserHint}>T&Cs accept + publish to marketplace</Text>
-          </Pressable>
-          <Pressable onPress={() => setChooserOpen(false)}>
-            <Text style={styles.cancel}>Cancel</Text>
-          </Pressable>
-        </View>
+          />
+          <Button variant="text" title="Cancel" onPress={() => setChooserOpen(false)} />
+        </Card>
       )}
 
-      <Pressable style={styles.fab} onPress={() => setChooserOpen(true)}>
-        <Text style={styles.fabText}>+</Text>
-      </Pressable>
+      <Fab onPress={() => setChooserOpen(true)} label="Post a property" />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  title: { fontSize: 22, fontWeight: '800', color: colors.text },
-  sub: { color: colors.textMuted, marginTop: 2 },
   logoutBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: colors.dangerLight,
+    width: TOUCH_TARGET,
+    height: TOUCH_TARGET,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  logoutText: { color: colors.danger, fontWeight: '700' },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: 120 },
-  card: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderLeftWidth: 4,
-    gap: 12,
-  },
-  thumb: { width: 76, height: 76, borderRadius: 10 },
+  logoutPressed: { backgroundColor: colors.primaryLight },
+  list: { paddingHorizontal: spacing.lg, paddingBottom: 104 },
+  card: { flexDirection: 'row', gap: spacing.md },
+  thumb: { width: THUMB, height: THUMB, borderRadius: radius.control },
   thumbPh: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  thumbPhText: { fontSize: 10, color: colors.textMuted },
   main: { flex: 1 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  cardTitle: { flex: 1, fontWeight: '700', color: colors.text, fontSize: 15 },
-  badgeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 8 },
-  modeBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  agentBadge: { backgroundColor: colors.primaryLight },
-  ownerBadge: { backgroundColor: '#EDE9FE' },
-  modeBadgeText: { fontSize: 11, fontWeight: '800', color: colors.primaryDark },
-  meta: { color: colors.textMuted, fontSize: 12, flex: 1 },
-  zone: { marginTop: 4, color: colors.primaryDark, fontWeight: '600' },
-  price: { marginTop: 4, fontWeight: '800', color: colors.text },
-  empty: { marginTop: 60, alignItems: 'center', paddingHorizontal: 24 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
-  emptyText: { marginTop: 6, color: colors.textMuted, textAlign: 'center' },
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 28,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: colors.primary,
+  row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
+  cardTitle: { ...type.body, flex: 1, fontWeight: '700' },
+  badgeRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
+    marginTop: spacing.sm,
+    gap: spacing.sm,
   },
-  fabText: { color: '#fff', fontSize: 32, lineHeight: 34 },
+  modeBadge: {
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.primaryLight,
+  },
+  modeBadgeText: { ...type.caption, color: colors.primary },
+  ownerBadgeText: { color: colors.accent },
+  meta: { ...type.secondary, flex: 1 },
+  zone: { ...type.secondary, marginTop: spacing.xs },
+  price: { ...type.body, marginTop: spacing.xs, fontWeight: '700' },
   chooser: {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 100,
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    elevation: 6,
+    left: spacing.md,
+    right: spacing.md,
+    bottom: 96,
+    marginBottom: 0,
+    ...shadow.raised,
   },
-  chooserTitle: { fontWeight: '800', fontSize: 16, color: colors.text, marginBottom: 12 },
-  chooserBtn: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: 10,
-    backgroundColor: colors.background,
+  chooserTitle: { ...type.heading, marginBottom: spacing.sm },
+  option: {
+    minHeight: OPTION_MIN_HEIGHT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.control,
   },
-  chooserBtnText: { fontWeight: '800', color: colors.text },
-  chooserHint: { marginTop: 4, color: colors.textMuted, fontSize: 12 },
-  cancel: { textAlign: 'center', color: colors.textMuted, fontWeight: '700', marginTop: 4 },
+  optionPressed: { backgroundColor: colors.primaryLight },
+  optionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionText: { flex: 1 },
+  optionTitle: { ...type.body, fontWeight: '600' },
 });

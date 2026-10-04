@@ -1,14 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import {
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { colors, spacing } from '../constants/theme';
+import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, radius, spacing, TOUCH_TARGET, type } from '../constants/theme';
+import Button from './Button';
+import Field from './Field';
 
 /**
  * Combo-style zone dropdown (search + pick).
@@ -72,7 +67,12 @@ export default function ZonePicker({
     <View>
       {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
       <Pressable
-        style={[styles.trigger, open && styles.triggerOpen]}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.trigger,
+          open && styles.triggerOpen,
+          pressed && styles.pressed,
+        ]}
         onPress={() => setOpen(true)}
       >
         <Text
@@ -81,7 +81,7 @@ export default function ZonePicker({
         >
           {summary}
         </Text>
-        <Text style={styles.chevron}>▾</Text>
+        <Ionicons name="chevron-down" size={20} color={colors.textMuted} />
       </Pressable>
 
       {multi && selectedZones.length > 0 ? (
@@ -89,33 +89,35 @@ export default function ZonePicker({
           {selectedZones.map((z) => (
             <Pressable
               key={z._id}
-              style={styles.selectedChip}
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${z.name}`}
+              style={({ pressed }) => [styles.selectedChip, pressed && styles.pressed]}
               onPress={() => toggle(z._id)}
             >
-              <Text style={styles.selectedChipText}>{z.name} ×</Text>
+              <Text style={styles.selectedChipText}>{z.name}</Text>
+              <Ionicons name="close" size={16} color={colors.onPrimary} />
             </Pressable>
           ))}
         </View>
       ) : null}
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
+        {/* accessible={false} so screen readers can reach the controls inside */}
+        <Pressable accessible={false} style={styles.backdrop} onPress={() => setOpen(false)}>
+          <Pressable accessible={false} style={styles.sheet} onPress={() => {}}>
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>
+              <Text style={styles.sheetTitle} accessibilityRole="header">
                 {multi ? 'Areas served' : 'Select area'}
               </Text>
-              <Pressable onPress={() => setOpen(false)}>
-                <Text style={styles.done}>Done</Text>
-              </Pressable>
+              <Button variant="text" title="Done" onPress={() => setOpen(false)} />
             </View>
 
-            <TextInput
-              style={styles.search}
+            <Field
+              accessibilityLabel="Search areas"
+              containerStyle={styles.search}
               value={query}
               onChangeText={setQuery}
               placeholder="Search areas…"
-              placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
               autoCorrect={false}
             />
@@ -124,9 +126,7 @@ export default function ZonePicker({
               <View style={styles.actions}>
                 <Text style={styles.count}>{selectedIds.length} selected</Text>
                 {selectedIds.length > 0 ? (
-                  <Pressable onPress={clearAll}>
-                    <Text style={styles.clear}>Clear all</Text>
-                  </Pressable>
+                  <Button variant="text" title="Clear all" onPress={clearAll} />
                 ) : null}
               </View>
             ) : null}
@@ -143,18 +143,26 @@ export default function ZonePicker({
                 const active = selectedSet.has(String(item._id));
                 return (
                   <Pressable
-                    style={[styles.option, active && styles.optionActive]}
+                    accessibilityRole={multi ? 'checkbox' : 'radio'}
+                    accessibilityState={{ checked: active }}
+                    style={({ pressed }) => [
+                      styles.option,
+                      active && styles.optionActive,
+                      pressed && styles.pressed,
+                    ]}
                     onPress={() => toggle(item._id)}
                   >
-                    <View style={{ flex: 1 }}>
+                    <View style={styles.optionText}>
                       <Text style={[styles.optionName, active && styles.optionNameActive]}>
                         {item.name}
                       </Text>
                       {item.city ? (
-                        <Text style={styles.optionCity}>{item.city}</Text>
+                        <Text style={type.secondary}>{item.city}</Text>
                       ) : null}
                     </View>
-                    <Text style={styles.check}>{active ? (multi ? '✓' : '●') : ''}</Text>
+                    {active ? (
+                      <Ionicons name="checkmark" size={22} color={colors.primary} />
+                    ) : null}
                   </Pressable>
                 );
               }}
@@ -181,131 +189,89 @@ export function ZoneChipsWrap({ zones, selectedIds, onChange, multi = true, plac
 
 const styles = StyleSheet.create({
   fieldLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: spacing.xs,
+    marginBottom: 6,
   },
   trigger: {
+    minHeight: TOUCH_TARGET,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: radius.control,
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.sm,
   },
-  triggerOpen: {
-    borderColor: colors.primary,
-  },
-  triggerText: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  triggerPlaceholder: {
-    color: colors.textMuted,
-    fontWeight: '500',
-  },
-  chevron: {
-    marginLeft: 8,
-    color: colors.textMuted,
-    fontSize: 16,
-  },
+  triggerOpen: { borderColor: colors.primary },
+  triggerText: { flex: 1, fontSize: 16, color: colors.text },
+  triggerPlaceholder: { color: colors.textMuted },
+  pressed: { opacity: 0.8 },
   selectedRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
   selectedChip: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginRight: 6,
-    marginBottom: 6,
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
   },
-  selectedChipText: {
-    color: colors.primaryDark,
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  selectedChipText: { flexShrink: 1, color: colors.onPrimary, fontSize: 14, fontWeight: '600' },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    backgroundColor: colors.scrim,
     justifyContent: 'flex-end',
   },
   sheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    borderTopLeftRadius: radius.card,
+    borderTopRightRadius: radius.card,
     maxHeight: '75%',
     paddingBottom: spacing.lg,
   },
   sheetHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    gap: spacing.sm,
+    paddingLeft: spacing.lg,
+    paddingRight: spacing.sm,
+    paddingTop: spacing.sm,
   },
-  sheetTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  done: {
-    color: colors.primary,
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  search: {
-    marginHorizontal: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: colors.text,
-    backgroundColor: colors.background,
-  },
+  sheetTitle: { ...type.heading, flex: 1 },
+  search: { marginHorizontal: spacing.lg },
   actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.sm,
+    alignItems: 'center',
+    minHeight: TOUCH_TARGET,
+    paddingLeft: spacing.lg,
+    paddingRight: spacing.sm,
+    marginTop: spacing.xs,
   },
-  count: { color: colors.textMuted, fontSize: 12, fontWeight: '600' },
-  clear: { color: colors.danger || '#EF4444', fontSize: 12, fontWeight: '700' },
+  count: type.secondary,
   list: { marginTop: spacing.sm },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: TOUCH_TARGET,
     paddingHorizontal: spacing.lg,
-    paddingVertical: 12,
+    paddingVertical: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  optionActive: {
-    backgroundColor: colors.primary + '12',
-  },
-  optionName: { fontSize: 15, fontWeight: '600', color: colors.text },
-  optionNameActive: { color: colors.primaryDark },
-  optionCity: { marginTop: 2, fontSize: 12, color: colors.textMuted },
-  check: {
-    minWidth: 22,
-    textAlign: 'right',
-    color: colors.primary,
-    fontWeight: '800',
-    fontSize: 16,
-  },
-  empty: {
-    textAlign: 'center',
-    color: colors.textMuted,
-    padding: spacing.lg,
-  },
+  optionActive: { backgroundColor: colors.primaryLight },
+  optionText: { flex: 1 },
+  optionName: type.body,
+  optionNameActive: { fontWeight: '600', color: colors.primary },
+  empty: { ...type.secondary, textAlign: 'center', padding: spacing.lg },
 });

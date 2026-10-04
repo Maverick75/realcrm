@@ -1,22 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import Button from '../components/Button';
+import Card from '../components/Card';
+import Field from '../components/Field';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { PROPERTY_TYPE_LABELS } from '../constants/config';
-import { colors, spacing } from '../constants/theme';
+import { colors, radius, spacing, type } from '../constants/theme';
 
 function formatPrice(n) {
   if (n == null) return '—';
   return `₹${Number(n).toLocaleString('en-IN')}`;
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <View style={styles.infoRow}>
+      <Text style={type.secondary}>{label}</Text>
+      <Text style={type.body}>{value}</Text>
+    </View>
+  );
 }
 
 export default function CustomerListingDetailScreen({ route, navigation }) {
@@ -76,43 +80,53 @@ export default function CustomerListingDetailScreen({ route, navigation }) {
       <LoadingOverlay visible={loading || sending} />
       <ScrollView contentContainerStyle={styles.content}>
         {images[0] ? (
-          <Image source={{ uri: images[0] }} style={styles.hero} />
+          <Image
+            source={{ uri: images[0] }}
+            style={styles.hero}
+            accessibilityLabel="Property photo"
+          />
         ) : (
           <View style={[styles.hero, styles.heroPh]}>
-            <Text style={styles.heroPhText}>No photo</Text>
+            <Ionicons name="image-outline" size={32} color={colors.textMuted} />
+            <Text style={type.secondary}>No photo</Text>
           </View>
         )}
-        <Text style={styles.title}>{listing?.title}</Text>
-        <Text style={styles.price}>{formatPrice(listing?.price)}</Text>
-        <Text style={styles.meta}>
-          {PROPERTY_TYPE_LABELS[listing?.type] || listing?.type} · {listing?.listingType}
-          {listing?.bhk != null ? ` · ${listing.bhk} BHK` : ''}
-        </Text>
-        <Text style={styles.zone}>{listing?.zone?.name || 'Hyderabad'}</Text>
-        {!!listing?.address && <Text style={styles.line}>{listing.address}</Text>}
-        {!!listing?.facing && <Text style={styles.line}>Facing: {listing.facing}</Text>}
-        {!!listing?.villaType && <Text style={styles.line}>{listing.villaType}</Text>}
-        {!!listing?.plotSize && <Text style={styles.line}>Size: {listing.plotSize}</Text>}
-        {(listing?.carpetArea || listing?.areaSqft) && (
-          <Text style={styles.line}>
-            Area: {listing.carpetArea || listing.areaSqft} sqft
-          </Text>
-        )}
-        {!!listing?.notes && <Text style={styles.notes}>{listing.notes}</Text>}
 
-        <Text style={styles.section}>Enquire</Text>
-        <Text style={styles.hint}>Tell the publisher what you need — we will connect you.</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          value={message}
-          onChangeText={setMessage}
-          multiline
-          placeholder="I would like a site visit this weekend…"
-          placeholderTextColor={colors.textMuted}
-        />
-        <Pressable style={styles.button} onPress={enquire}>
-          <Text style={styles.buttonText}>Send enquiry</Text>
-        </Pressable>
+        <Card>
+          <Text style={type.heading}>{listing?.title}</Text>
+          <Text style={[type.heading, styles.price]}>{formatPrice(listing?.price)}</Text>
+          <InfoRow
+            label="Type"
+            value={`${PROPERTY_TYPE_LABELS[listing?.type] || listing?.type} · ${
+              listing?.listingType
+            }${listing?.bhk != null ? ` · ${listing.bhk} BHK` : ''}`}
+          />
+          <InfoRow label="Zone" value={listing?.zone?.name || 'Hyderabad'} />
+          {!!listing?.address && <InfoRow label="Address" value={listing.address} />}
+          {!!listing?.facing && <InfoRow label="Facing" value={listing.facing} />}
+          {!!listing?.villaType && <InfoRow label="Villa type" value={listing.villaType} />}
+          {!!listing?.plotSize && <InfoRow label="Size" value={listing.plotSize} />}
+          {!!(listing?.carpetArea || listing?.areaSqft) && (
+            <InfoRow label="Area" value={`${listing.carpetArea || listing.areaSqft} sqft`} />
+          )}
+          {!!listing?.notes && <InfoRow label="Notes" value={listing.notes} />}
+        </Card>
+
+        <Card>
+          <Text style={type.heading}>Enquire</Text>
+          <Text style={[type.secondary, styles.hint]}>
+            Tell the publisher what you need — we will connect you.
+          </Text>
+          <Field
+            accessibilityLabel="Enquiry message"
+            containerStyle={styles.action}
+            value={message}
+            onChangeText={setMessage}
+            multiline
+            placeholder="I would like a site visit this weekend…"
+          />
+          <Button title="Send enquiry" onPress={enquire} style={styles.action} />
+        </Card>
       </ScrollView>
     </View>
   );
@@ -120,70 +134,17 @@ export default function CustomerListingDetailScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { paddingBottom: 40 },
-  hero: { width: '100%', height: 220, backgroundColor: colors.border },
-  heroPh: { alignItems: 'center', justifyContent: 'center' },
-  heroPhText: { color: colors.textMuted, fontWeight: '600' },
-  title: {
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.lg,
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.text,
+  content: { padding: spacing.lg, paddingBottom: spacing.xl },
+  hero: {
+    width: '100%',
+    height: 220,
+    borderRadius: radius.control,
+    backgroundColor: colors.border,
+    marginBottom: spacing.md,
   },
-  price: {
-    paddingHorizontal: spacing.lg,
-    marginTop: 6,
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.primaryDark,
-  },
-  meta: { paddingHorizontal: spacing.lg, marginTop: 6, color: colors.textMuted },
-  zone: {
-    paddingHorizontal: spacing.lg,
-    marginTop: 6,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  line: { paddingHorizontal: spacing.lg, marginTop: 4, color: colors.text },
-  notes: {
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    color: colors.textMuted,
-    lineHeight: 20,
-  },
-  section: {
-    marginTop: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  hint: {
-    paddingHorizontal: spacing.lg,
-    marginTop: 4,
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-  input: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-    color: colors.text,
-    fontSize: 15,
-  },
-  multiline: { minHeight: 90, textAlignVertical: 'top' },
-  button: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  buttonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  heroPh: { alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
+  price: { marginTop: spacing.xs, color: colors.primary },
+  infoRow: { marginTop: spacing.sm },
+  hint: { marginTop: spacing.xs },
+  action: { marginTop: spacing.md },
 });

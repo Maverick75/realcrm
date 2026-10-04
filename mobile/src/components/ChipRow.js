@@ -4,7 +4,7 @@ import { colors, radius, spacing } from '../constants/theme';
 
 /**
  * Single-select row of pill options.
- * @param {{ options: string[], value: string, onSelect: (opt: string) => void, labels?: Record<string, string> }} props
+ * @param {{ options: (string|number)[], value: string|number, onSelect: (opt: string|number) => void, labels?: Record<string, string> }} props
  */
 export default function ChipRow({ options, value, onSelect, labels }) {
   return (
@@ -16,6 +16,7 @@ export default function ChipRow({ options, value, onSelect, labels }) {
             key={opt}
             accessibilityRole="radio"
             accessibilityState={{ selected }}
+            hitSlop={4}
             onPress={() => onSelect(opt)}
             style={({ pressed }) => [
               styles.chip,

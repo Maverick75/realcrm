@@ -1,59 +1,42 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
-import { colors, spacing } from '../constants/theme';
+import Button from '../components/Button';
+import Card from '../components/Card';
+import ScreenHeader from '../components/ScreenHeader';
+import { colors, spacing, type } from '../constants/theme';
 
 export default function CustomerProfileScreen() {
   const { user, logout, apiUrl } = useAuth();
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <Text style={styles.title}>Profile</Text>
-      <View style={styles.card}>
-        <Text style={styles.label}>Name</Text>
-        <Text style={styles.value}>{user?.name || '—'}</Text>
-        <Text style={styles.label}>Email</Text>
-        <Text style={styles.value}>{user?.email || '—'}</Text>
-        <Text style={styles.label}>Persona</Text>
-        <Text style={styles.value}>Customer (Buy / Rent)</Text>
-        <Text style={styles.label}>API</Text>
-        <Text style={styles.valueMuted}>{apiUrl}</Text>
-      </View>
-      <Pressable style={styles.logout} onPress={logout}>
-        <Text style={styles.logoutText}>Log out</Text>
-      </Pressable>
+      <ScreenHeader title="Profile" />
+      <ScrollView contentContainerStyle={styles.content}>
+        <Card style={styles.card}>
+          <Text style={[styles.label, styles.firstLabel]}>Name</Text>
+          <Text style={styles.value}>{user?.name || '—'}</Text>
+          <Text style={styles.label}>Email</Text>
+          <Text style={styles.value}>{user?.email || '—'}</Text>
+          <Text style={styles.label}>Persona</Text>
+          <Text style={styles.value}>Customer (Buy / Rent)</Text>
+          <Text style={styles.label}>API</Text>
+          <Text style={styles.valueMuted}>{apiUrl}</Text>
+        </Card>
+        <Button title="Log out" onPress={logout} variant="danger" style={styles.logout} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
-  title: { fontSize: 24, fontWeight: '800', color: colors.text, marginBottom: spacing.md },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  label: {
-    marginTop: spacing.sm,
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-  },
-  value: { marginTop: 4, fontSize: 16, fontWeight: '600', color: colors.text },
-  valueMuted: { marginTop: 4, fontSize: 13, color: colors.textMuted },
-  logout: {
-    marginTop: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-  },
-  logoutText: { color: '#EF4444', fontWeight: '700', fontSize: 16 },
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+  card: { padding: spacing.lg },
+  label: { ...type.caption, marginTop: spacing.md, textTransform: 'uppercase' },
+  firstLabel: { marginTop: 0 },
+  value: { ...type.body, marginTop: spacing.xs, fontWeight: '600' },
+  valueMuted: { ...type.secondary, marginTop: spacing.xs },
+  logout: { marginTop: spacing.lg },
 });

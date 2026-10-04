@@ -1,19 +1,14 @@
 import React, { useCallback, useState } from 'react';
-import {
-  Alert,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Alert, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../api/client';
+import Card from '../components/Card';
+import EmptyState from '../components/EmptyState';
+import ScreenHeader from '../components/ScreenHeader';
 import StatusBadge from '../components/StatusBadge';
 import LoadingOverlay from '../components/LoadingOverlay';
-import { colors, spacing } from '../constants/theme';
+import { colors, spacing, type } from '../constants/theme';
 
 export default function CustomerEnquiriesScreen({ navigation }) {
   const [items, setItems] = useState([]);
@@ -43,7 +38,7 @@ export default function CustomerEnquiriesScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <LoadingOverlay visible={loading} />
-      <Text style={styles.title}>My enquiries</Text>
+      <ScreenHeader title="My enquiries" />
       <FlatList
         data={items}
         keyExtractor={(item) => item._id}
@@ -53,15 +48,15 @@ export default function CustomerEnquiriesScreen({ navigation }) {
         }
         ListEmptyComponent={
           !loading ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>No enquiries yet</Text>
-              <Text style={styles.emptyText}>Browse homes and send an enquiry</Text>
-            </View>
+            <EmptyState
+              icon="chatbubbles-outline"
+              title="No enquiries yet"
+              hint="Browse homes and send an enquiry"
+            />
           ) : null
         }
         renderItem={({ item }) => (
-          <Pressable
-            style={styles.card}
+          <Card
             onPress={() =>
               item.property?._id &&
               navigation.navigate('CustomerListingDetail', {
@@ -84,7 +79,7 @@ export default function CustomerEnquiriesScreen({ navigation }) {
                 {item.message}
               </Text>
             )}
-          </Pressable>
+          </Card>
         )}
       />
     </SafeAreaView>
@@ -93,27 +88,9 @@ export default function CustomerEnquiriesScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.text,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-  },
-  list: { padding: spacing.lg, paddingBottom: 40 },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  cardTitle: { flex: 1, fontWeight: '700', color: colors.text, fontSize: 16 },
-  meta: { marginTop: 6, color: colors.textMuted, fontSize: 12 },
-  message: { marginTop: 8, color: colors.text, lineHeight: 20 },
-  empty: { marginTop: 60, alignItems: 'center' },
-  emptyTitle: { fontWeight: '700', fontSize: 17, color: colors.text },
-  emptyText: { marginTop: 6, color: colors.textMuted },
+  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+  row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
+  cardTitle: { ...type.body, flex: 1, fontWeight: '700' },
+  meta: { ...type.secondary, marginTop: spacing.sm },
+  message: { ...type.secondary, marginTop: spacing.sm, color: colors.text },
 });

@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   text: { backgroundColor: 'transparent' },
   pressed: { opacity: 0.8 },
   inactive: { opacity: 0.5 },
-  label: { fontSize: 16, fontWeight: '600' },
+  label: { fontSize: 16, fontWeight: '600', textAlign: 'center' },
   primaryLabel: { color: colors.onPrimary },
   secondaryLabel: { color: colors.primary },
   dangerLabel: { color: colors.danger },

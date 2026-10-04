@@ -11,12 +11,25 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import Card from '../components/Card';
+import ChipRow from '../components/ChipRow';
+import EmptyState from '../components/EmptyState';
+import ScreenHeader from '../components/ScreenHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
 import ZonePicker from '../components/ZonePicker';
 import { LISTING_TYPES, PROPERTY_TYPE_LABELS, PROPERTY_TYPES } from '../constants/config';
-import { colors, spacing } from '../constants/theme';
+// `type` is a state variable in this screen, so the theme scale is aliased.
+import { colors, radius, spacing, TOUCH_TARGET, type as typography } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+
+const THUMB = 96;
+// '' is the "Any" (no filter) value.
+const LISTING_OPTIONS = ['', ...LISTING_TYPES];
+const TYPE_OPTIONS = ['', ...PROPERTY_TYPES];
+const LISTING_LABELS = { '': 'Any' };
+const TYPE_LABELS = { ...PROPERTY_TYPE_LABELS, '': 'Any' };
 
 function formatPrice(n) {
   if (n == null) return '—';
@@ -61,50 +74,39 @@ export default function CustomerBrowseScreen({ navigation }) {
     }, [zoneId, listingType, type])
   );
 
-  const Chip = ({ label, active, onPress }) => (
-    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
-    </Pressable>
-  );
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <LoadingOverlay visible={loading} />
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Find a home</Text>
-          <Text style={styles.sub}>Hi {user?.name} · {items.length} available</Text>
-        </View>
-        <Pressable onPress={logout} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title="Find a home"
+        subtitle={`Hi ${user?.name} · ${items.length} available`}
+        right={
+          <Pressable
+            onPress={logout}
+            accessibilityRole="button"
+            accessibilityLabel="Log out"
+            style={({ pressed }) => [styles.logoutBtn, pressed && styles.logoutPressed]}
+          >
+            <Ionicons name="log-out-outline" size={22} color={colors.textMuted} />
+          </Pressable>
+        }
+      />
 
       <View style={styles.filters}>
         <Text style={styles.filterLabel}>Listing</Text>
-        <View style={styles.chipRow}>
-          <Chip label="Any" active={!listingType} onPress={() => setListingType('')} />
-          {LISTING_TYPES.map((t) => (
-            <Chip
-              key={t}
-              label={t}
-              active={listingType === t}
-              onPress={() => setListingType(t)}
-            />
-          ))}
-        </View>
+        <ChipRow
+          options={LISTING_OPTIONS}
+          value={listingType}
+          onSelect={setListingType}
+          labels={LISTING_LABELS}
+        />
         <Text style={styles.filterLabel}>Type</Text>
-        <View style={styles.chipRow}>
-          <Chip label="Any" active={!type} onPress={() => setType('')} />
-          {PROPERTY_TYPES.map((t) => (
-            <Chip
-              key={t}
-              label={PROPERTY_TYPE_LABELS[t] || t}
-              active={type === t}
-              onPress={() => setType(t)}
-            />
-          ))}
-        </View>
+        <ChipRow
+          options={TYPE_OPTIONS}
+          value={type}
+          onSelect={setType}
+          labels={TYPE_LABELS}
+        />
         <Text style={styles.filterLabel}>Area</Text>
         <ZonePicker
           zones={zones}
@@ -124,16 +126,17 @@ export default function CustomerBrowseScreen({ navigation }) {
         }
         ListEmptyComponent={
           !loading ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>No listings match</Text>
-              <Text style={styles.emptyText}>Try clearing filters</Text>
-            </View>
+            <EmptyState
+              icon="search-outline"
+              title="No listings match"
+              hint="Try clearing filters"
+            />
           ) : null
         }
         renderItem={({ item }) => {
           const thumb = item.images?.[0];
           return (
-            <Pressable
+            <Card
               style={styles.card}
               onPress={() =>
                 navigation.navigate('CustomerListingDetail', { listingId: item._id })
@@ -143,7 +146,7 @@ export default function CustomerBrowseScreen({ navigation }) {
                 <Image source={{ uri: thumb }} style={styles.thumb} />
               ) : (
                 <View style={[styles.thumb, styles.thumbPh]}>
-                  <Text style={styles.thumbPhText}>No photo</Text>
+                  <Ionicons name="image-outline" size={28} color={colors.primary} />
                 </View>
               )}
               <View style={styles.main}>
@@ -154,10 +157,10 @@ export default function CustomerBrowseScreen({ navigation }) {
                   {PROPERTY_TYPE_LABELS[item.type] || item.type} · {item.listingType}
                   {item.bhk != null ? ` · ${item.bhk} BHK` : ''}
                 </Text>
-                <Text style={styles.zone}>{item.zone?.name || 'Hyderabad'}</Text>
+                <Text style={styles.meta}>{item.zone?.name || 'Hyderabad'}</Text>
                 <Text style={styles.price}>{formatPrice(item.price)}</Text>
               </View>
-            </Pressable>
+            </Card>
           );
         }}
       />
@@ -167,70 +170,30 @@ export default function CustomerBrowseScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  title: { fontSize: 22, fontWeight: '800', color: colors.text },
-  sub: { color: colors.textMuted, marginTop: 2 },
   logoutBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: colors.dangerLight,
-  },
-  logoutText: { color: colors.danger, fontWeight: '700' },
-  filters: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
-  filterLabel: {
-    marginTop: 8,
-    marginBottom: 4,
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textMuted,
-  },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap' },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginRight: 6,
-    marginBottom: 6,
-    backgroundColor: colors.surface,
-  },
-  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
-  chipTextActive: { color: '#fff' },
-  list: { padding: spacing.lg, paddingBottom: 40 },
-  card: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: 12,
-  },
-  thumb: { width: 96, height: 96, borderRadius: 12 },
-  thumbPh: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
+    width: TOUCH_TARGET,
+    height: TOUCH_TARGET,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  thumbPhText: { fontSize: 10, color: colors.textMuted },
+  logoutPressed: { backgroundColor: colors.primaryLight },
+  filters: { paddingHorizontal: spacing.lg },
+  filterLabel: { ...typography.caption, marginTop: spacing.sm, marginBottom: spacing.xs },
+  list: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+  },
+  card: { flexDirection: 'row', gap: spacing.md },
+  thumb: { width: THUMB, height: THUMB, borderRadius: radius.control },
+  thumbPh: {
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   main: { flex: 1 },
-  cardTitle: { fontWeight: '800', color: colors.text, fontSize: 16 },
-  meta: { marginTop: 4, color: colors.textMuted, fontSize: 13 },
-  zone: { marginTop: 4, color: colors.primaryDark, fontWeight: '600' },
-  price: { marginTop: 6, fontWeight: '800', fontSize: 17, color: colors.text },
-  empty: { marginTop: 40, alignItems: 'center' },
-  emptyTitle: { fontWeight: '700', fontSize: 17, color: colors.text },
-  emptyText: { marginTop: 6, color: colors.textMuted },
+  cardTitle: { ...typography.body, fontWeight: '700' },
+  meta: { ...typography.secondary, marginTop: spacing.xs },
+  price: { ...typography.body, marginTop: spacing.sm, fontWeight: '700' },
 });

@@ -1,13 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
@@ -16,7 +8,11 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import ZonePicker from '../components/ZonePicker';
 import ZoneMapPreview from '../components/ZoneMapPreview';
 import { useAuth } from '../context/AuthContext';
-import { colors, spacing } from '../constants/theme';
+import Button from '../components/Button';
+import Card from '../components/Card';
+import Field from '../components/Field';
+import ScreenHeader from '../components/ScreenHeader';
+import { colors, spacing, type } from '../constants/theme';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -162,111 +158,113 @@ export default function AgentProfileScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <LoadingOverlay visible={loading || saving} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{user?.name}</Text>
-        <Text style={styles.sub}>{user?.email}</Text>
-
-        <Text style={styles.label}>Phone</Text>
-        <TextInput style={styles.input} value={phone} onChangeText={setPhone} />
-
-        <Text style={styles.label}>Agency</Text>
-        <TextInput style={styles.input} value={agencyName} onChangeText={setAgencyName} />
-
-        <Text style={styles.label}>Years experience</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="number-pad"
-          value={yearsExperience}
-          onChangeText={setYearsExperience}
-        />
-
-        <Text style={styles.label}>Bio</Text>
-        <TextInput
-          style={[styles.input, styles.notes]}
-          multiline
-          value={bio}
-          onChangeText={setBio}
-          textAlignVertical="top"
-        />
-
-        <Text style={styles.label}>Areas served</Text>
-        <ZonePicker
-          zones={zones}
-          selectedIds={selectedZones}
-          onChange={setSelectedZones}
-          multi
-          placeholder="Select areas served"
-        />
-        <ZoneMapPreview zones={zones} selectedIds={selectedZones} height={200} />
-
-        <Text style={styles.section}>Your OpenAI credits (LLM)</Text>
-        <View style={styles.igBox}>
-          <Text style={styles.igText}>
-            Paste your personal OpenAI API key. Reel captions use your free/paid credits — not a
-            shared platform key. Keys are stored encrypted and never shown again.
-          </Text>
-          <Text style={styles.statusLine}>
-            Status: {hasOpenaiKey ? 'Key saved' : 'No key yet'}
-          </Text>
-          <Text style={styles.label}>OpenAI API key</Text>
-          <TextInput
-            style={styles.input}
-            value={openaiKeyInput}
-            onChangeText={setOpenaiKeyInput}
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-            placeholder={hasOpenaiKey ? '•••• sk-... (enter to replace)' : 'sk-...'}
-            placeholderTextColor={colors.textMuted}
+        <ScreenHeader title={user?.name} subtitle={user?.email} />
+        <View style={styles.body}>
+          <Field
+            label="Phone"
+            containerStyle={styles.firstField}
+            value={phone}
+            onChangeText={setPhone}
           />
-          <Text style={styles.label}>Model</Text>
-          <TextInput
-            style={styles.input}
-            value={openaiModel}
-            onChangeText={setOpenaiModel}
-            autoCapitalize="none"
-            placeholder="gpt-4o-mini"
-            placeholderTextColor={colors.textMuted}
+
+          <Field label="Agency" value={agencyName} onChangeText={setAgencyName} />
+
+          <Field
+            label="Years experience"
+            keyboardType="number-pad"
+            value={yearsExperience}
+            onChangeText={setYearsExperience}
           />
-          <Pressable style={styles.button} onPress={saveOpenaiKey}>
-            <Text style={styles.buttonText}>
-              {hasOpenaiKey ? 'Replace OpenAI key' : 'Save OpenAI key'}
+
+          <Field label="Bio" multiline value={bio} onChangeText={setBio} />
+
+          <Text style={styles.label}>Areas served</Text>
+          <ZonePicker
+            zones={zones}
+            selectedIds={selectedZones}
+            onChange={setSelectedZones}
+            multi
+            placeholder="Select areas served"
+          />
+          <ZoneMapPreview zones={zones} selectedIds={selectedZones} height={200} />
+
+          <Button title="Save profile" onPress={onSave} style={styles.save} />
+
+          <Text style={styles.section} accessibilityRole="header">
+            Your OpenAI credits (LLM)
+          </Text>
+          <Card>
+            <Text style={styles.cardText}>
+              Paste your personal OpenAI API key. Reel captions use your free/paid credits — not a
+              shared platform key. Keys are stored encrypted and never shown again.
             </Text>
-          </Pressable>
-          {hasOpenaiKey && (
-            <Pressable style={[styles.secondaryBtn, { marginTop: 8 }]} onPress={clearOpenaiKey}>
-              <Text style={styles.secondaryText}>Remove key</Text>
-            </Pressable>
+            <Text style={styles.statusLine}>
+              Status: {hasOpenaiKey ? 'Key saved' : 'No key yet'}
+            </Text>
+            <Field
+              label="OpenAI API key"
+              value={openaiKeyInput}
+              onChangeText={setOpenaiKeyInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+              placeholder={hasOpenaiKey ? '•••• sk-... (enter to replace)' : 'sk-...'}
+            />
+            <Field
+              label="Model"
+              value={openaiModel}
+              onChangeText={setOpenaiModel}
+              autoCapitalize="none"
+              placeholder="gpt-4o-mini"
+            />
+            <Button
+              title={hasOpenaiKey ? 'Replace OpenAI key' : 'Save OpenAI key'}
+              onPress={saveOpenaiKey}
+              variant="secondary"
+              style={styles.cardAction}
+            />
+            {hasOpenaiKey && (
+              <Button
+                title="Remove key"
+                onPress={clearOpenaiKey}
+                variant="danger"
+                style={styles.cardActionNext}
+              />
+            )}
+          </Card>
+
+          <Text style={styles.section} accessibilityRole="header">
+            Instagram Reels
+          </Text>
+          {igStatus?.connected ? (
+            <Card>
+              <Text style={styles.cardText}>
+                Connected as @{igStatus.instagramUsername || 'business'}
+              </Text>
+              <Button
+                title="Disconnect"
+                onPress={disconnectInstagram}
+                variant="danger"
+                style={styles.cardActionNext}
+              />
+            </Card>
+          ) : (
+            <Card>
+              <Text style={styles.cardText}>
+                Connect an Instagram Business account linked to a Facebook Page to auto-publish
+                Reels.
+              </Text>
+              <Button
+                title="Connect Instagram"
+                onPress={connectInstagram}
+                variant="secondary"
+                style={styles.cardActionNext}
+              />
+            </Card>
           )}
+
+          <Button title="Logout" onPress={logout} variant="danger" style={styles.logout} />
         </View>
-
-        <Text style={styles.section}>Instagram Reels</Text>
-        {igStatus?.connected ? (
-          <View style={styles.igBox}>
-            <Text style={styles.igText}>
-              Connected as @{igStatus.instagramUsername || 'business'}
-            </Text>
-            <Pressable style={styles.secondaryBtn} onPress={disconnectInstagram}>
-              <Text style={styles.secondaryText}>Disconnect</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.igBox}>
-            <Text style={styles.igText}>
-              Connect an Instagram Business account linked to a Facebook Page to auto-publish
-              Reels.
-            </Text>
-            <Pressable style={styles.button} onPress={connectInstagram}>
-              <Text style={styles.buttonText}>Connect Instagram</Text>
-            </Pressable>
-          </View>
-        )}
-
-        <Pressable style={styles.button} onPress={onSave}>
-          <Text style={styles.buttonText}>Save profile</Text>
-        </Pressable>
-        <Pressable onPress={logout} style={styles.logout}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -274,62 +272,21 @@ export default function AgentProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: 40 },
-  title: { fontSize: 22, fontWeight: '800', color: colors.text },
-  sub: { color: colors.textMuted, marginBottom: spacing.md },
-  section: {
-    marginTop: spacing.lg,
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.text,
-  },
+  content: { paddingBottom: spacing.xl },
+  body: { paddingHorizontal: spacing.lg },
+  firstField: { marginTop: -spacing.md },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: spacing.xs,
     marginTop: spacing.md,
+    marginBottom: 6,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
-    backgroundColor: colors.surface,
-  },
-  notes: { minHeight: 80 },
-  igBox: {
-    marginTop: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  igText: { color: colors.textMuted, marginBottom: spacing.sm, lineHeight: 20 },
-  statusLine: {
-    color: colors.primaryDark,
-    fontWeight: '700',
-    marginBottom: spacing.sm,
-  },
-  button: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-  buttonText: { color: '#fff', fontWeight: '700' },
-  secondaryBtn: {
-    backgroundColor: colors.dangerLight,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  secondaryText: { color: colors.danger, fontWeight: '700' },
-  logout: { marginTop: spacing.md, alignItems: 'center' },
-  logoutText: { color: colors.danger, fontWeight: '600' },
+  save: { marginTop: spacing.lg },
+  section: { ...type.heading, marginTop: spacing.xl, marginBottom: spacing.sm },
+  cardText: { ...type.secondary },
+  statusLine: { ...type.secondary, color: colors.text, fontWeight: '600', marginTop: spacing.sm },
+  cardAction: { marginTop: spacing.md },
+  cardActionNext: { marginTop: spacing.sm },
+  logout: { marginTop: spacing.lg },
 });
