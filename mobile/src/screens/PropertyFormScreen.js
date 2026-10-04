@@ -13,6 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import api from '../api/client';
 import Button from '../components/Button';
 import ChipRow from '../components/ChipRow';
+import PriceField, { splitRupees, toRupees } from '../components/PriceField';
 import Field from '../components/Field';
 import LoadingOverlay from '../components/LoadingOverlay';
 import ZonePicker from '../components/ZonePicker';
@@ -46,6 +47,7 @@ export default function PropertyFormScreen({ navigation, route }) {
   const [villaType, setVillaType] = useState('');
   const [plotSize, setPlotSize] = useState('');
   const [price, setPrice] = useState('');
+  const [priceUnit, setPriceUnit] = useState('Lakhs');
   const [areaSqft, setAreaSqft] = useState('');
   const [zoneId, setZoneId] = useState(null);
   const [address, setAddress] = useState('');
@@ -69,7 +71,9 @@ export default function PropertyFormScreen({ navigation, route }) {
     setBhk(data.bhk != null ? String(data.bhk) : '');
     setVillaType(data.villaType || '');
     setPlotSize(data.plotSize || '');
-    setPrice(data.price != null ? String(data.price) : '');
+    const savedPrice = splitRupees(data.price);
+    setPrice(savedPrice.amount);
+    setPriceUnit(savedPrice.unit);
     setAreaSqft(data.areaSqft != null ? String(data.areaSqft) : '');
     setZoneId(data.zone?._id || data.zone);
     setAddress(data.address || '');
@@ -113,7 +117,7 @@ export default function PropertyFormScreen({ navigation, route }) {
     bhk: type === 'Apartment' && bhk !== '' ? Number(bhk) : null,
     villaType: type === 'Villa' ? villaType : '',
     plotSize: type === 'Plot' ? plotSize.trim() : '',
-    price: Number(price),
+    price: toRupees(price, priceUnit),
     areaSqft:
       (type === 'Commercial' || type === 'Plot' || type === 'Villa') && areaSqft !== ''
         ? Number(areaSqft)
@@ -131,7 +135,7 @@ export default function PropertyFormScreen({ navigation, route }) {
   });
 
   const onSave = async () => {
-    if (!title.trim() || !price || !zoneId) {
+    if (!title.trim() || !(toRupees(price, priceUnit) > 0) || !zoneId) {
       Alert.alert('Validation', 'Title, price, and area (zone) are required.');
       return;
     }
@@ -290,7 +294,7 @@ export default function PropertyFormScreen({ navigation, route }) {
       type,
       listingType,
       bhk: bhk === '' ? null : Number(bhk),
-      price: price === '' ? null : Number(price),
+      price: price === '' ? null : toRupees(price, priceUnit),
       address,
       notes,
       zone: zones.find((z) => z._id === zoneId) || property?.zone,
@@ -449,11 +453,12 @@ export default function PropertyFormScreen({ navigation, route }) {
         <Text style={styles.section} accessibilityRole="header">
           Price & location
         </Text>
-        <Field
+        <PriceField
           label="Price (₹) *"
-          keyboardType="number-pad"
-          value={price}
-          onChangeText={setPrice}
+          amount={price}
+          unit={priceUnit}
+          onChangeAmount={setPrice}
+          onChangeUnit={setPriceUnit}
         />
 
         <Text style={styles.label}>Zone / Area *</Text>

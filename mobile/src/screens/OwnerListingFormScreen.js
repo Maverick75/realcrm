@@ -14,6 +14,7 @@ import * as ImagePicker from 'expo-image-picker';
 import api from '../api/client';
 import Button from '../components/Button';
 import ChipRow from '../components/ChipRow';
+import PriceField, { splitRupees, toRupees } from '../components/PriceField';
 import Field from '../components/Field';
 import LoadingOverlay from '../components/LoadingOverlay';
 import ZonePicker from '../components/ZonePicker';
@@ -36,6 +37,7 @@ export default function OwnerListingFormScreen({ navigation, route }) {
   const [listingType, setListingType] = useState('Sale');
   const [bhk, setBhk] = useState('');
   const [price, setPrice] = useState('');
+  const [priceUnit, setPriceUnit] = useState('Lakhs');
   const [areaSqft, setAreaSqft] = useState('');
   const [zoneId, setZoneId] = useState(null);
   const [address, setAddress] = useState('');
@@ -54,7 +56,9 @@ export default function OwnerListingFormScreen({ navigation, route }) {
     setType(data.type || 'Apartment');
     setListingType(data.listingType || 'Sale');
     setBhk(data.bhk != null ? String(data.bhk) : '');
-    setPrice(data.price != null ? String(data.price) : '');
+    const savedPrice = splitRupees(data.price);
+    setPrice(savedPrice.amount);
+    setPriceUnit(savedPrice.unit);
     setAreaSqft(data.areaSqft != null ? String(data.areaSqft) : '');
     setZoneId(data.zone?._id || data.zone);
     setAddress(data.address || '');
@@ -108,7 +112,7 @@ export default function OwnerListingFormScreen({ navigation, route }) {
     type,
     listingType,
     bhk: bhk === '' ? null : Number(bhk),
-    price: Number(price),
+    price: toRupees(price, priceUnit),
     areaSqft: areaSqft === '' ? null : Number(areaSqft),
     zone: zoneId,
     address,
@@ -119,7 +123,7 @@ export default function OwnerListingFormScreen({ navigation, route }) {
   });
 
   const ensureSaved = async () => {
-    if (!title.trim() || !price || !zoneId) {
+    if (!title.trim() || !(toRupees(price, priceUnit) > 0) || !zoneId) {
       Alert.alert('Validation', 'Title, price, and zone are required.');
       return null;
     }
@@ -293,12 +297,12 @@ export default function OwnerListingFormScreen({ navigation, route }) {
           keyboardType="numeric"
           placeholder="3"
         />
-        <Field
+        <PriceField
           label="Price (₹)"
-          value={price}
-          onChangeText={setPrice}
-          keyboardType="numeric"
-          placeholder="8500000"
+          amount={price}
+          unit={priceUnit}
+          onChangeAmount={setPrice}
+          onChangeUnit={setPriceUnit}
         />
         <Field
           label="Area (sqft)"

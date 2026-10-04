@@ -124,6 +124,7 @@ Emulator API URL: `http://10.0.2.2:5000` (Server settings on Login).
 | GET | `/api/agents` | Admin |
 | GET | `/api/zones` | Auth |
 | CRUD | `/api/properties` | Agent (own) / Admin |
+| GET | `/api/properties/mine` | Publisher — own agent + owner posts as `{ items, facets, total }`. Query: `q`, `minPrice`, `maxPrice`, and comma-separated `postAs`, `status`, `type`, `listingType`, `bhk`, `zone` |
 | GET | `/api/listings/terms-template` | Owner |
 | GET | `/api/listings/mine` | Owner |
 | POST/PUT/DELETE | `/api/listings` `/api/listings/:id` | Owner |
@@ -131,6 +132,8 @@ Emulator API URL: `http://10.0.2.2:5000` (Server settings on Login).
 | DELETE | `/api/listings/:id/images` | Owner |
 | POST | `/api/listings/:id/publish` | Owner (`accepted: true`) |
 | CRUD | `/api/requirements` | Admin + Agent create; Agent lists created/assigned |
+| GET | `/api/requirements/search` | Admin + Agent — leads as `{ items, facets, total }`. Query: `q` and comma-separated `stage` (New, Matched, Assigned, Closed, Sent), `read` (Read, Unread), `listingType`, `propertyType`, `zone` |
+| POST | `/api/requirements/:id/read` | Admin + Agent (with access) — mark lead as read |
 | GET | `/api/requirements/:id/matches` | Admin + Agent (with access) |
 | POST | `/api/requirements/:id/assign` | Admin + Agent (with access) |
 | GET/POST | `/api/agents/:id/reviews` | Admin + Agent (lead gen rates serving agent) |

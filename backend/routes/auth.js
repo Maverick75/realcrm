@@ -195,6 +195,9 @@ router.post('/google', async (req, res) => {
       if (desired === 'admin' && user.role !== 'admin') {
         user.role = 'admin';
         dirty = true;
+      } else if (['agent', 'owner', 'sales'].includes(user.role)) {
+        user.role = 'publisher';
+        dirty = true;
       }
       if (dirty) await user.save();
     } else {
@@ -209,9 +212,6 @@ router.post('/google', async (req, res) => {
       if (role === 'publisher') {
         await AgentProfile.create({ user: user._id });
       }
-    } else if (['agent', 'owner', 'sales'].includes(user.role)) {
-      user.role = 'publisher';
-      await user.save();
     }
 
     if (normalizeRole(user) === 'publisher') {

@@ -77,3 +77,14 @@ export const statusColors = {
   Sold: colors.danger,
   Draft: colors.textMuted,
 };
+
+// Whole-card status colouring (My Properties, Leads). Statuses not listed stay
+// on the plain surface and show their name instead.
+export const statusCardColors = {
+  Available: { background: '#E6F4EA', edge: colors.success },
+  Sold: { background: colors.dangerLight, edge: colors.danger },
+  Deal: { background: '#F1E6DA', edge: '#7C4A21' },
+  // Lead stages; New stays white.
+  Matched: { background: '#E6F4EA', edge: colors.success },
+  Sent: { background: '#E9ECF0', edge: colors.neutral },
+};

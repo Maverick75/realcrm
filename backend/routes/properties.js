@@ -10,6 +10,7 @@ const { generatePropertyCaption } = require('../services/captionLlm');
 const { publishReel } = require('../services/instagramPublish');
 const { getAgentIgCredentials } = require('../services/instagramCredentials');
 const { decryptToken } = require('../services/tokenCrypto');
+const { searchPosts } = require('../services/facetSearch');
 const {
   buildInventoryImageKey,
   uploadListingImage,
@@ -136,6 +137,28 @@ router.get('/', requireRole('agent', 'admin'), async (req, res) => {
     res.json(properties);
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to fetch properties' });
+  }
+});
+
+// My posts: everything the publisher posted (as agent or as owner), with
+// search, filters and facet counts. See services/facetSearch.js for the params.
+router.get('/mine', requireRole('agent', 'owner'), async (req, res) => {
+  try {
+    const userId = String(req.user._id);
+    const posts = await Property.find({
+      $or: [{ agent: req.user._id }, { owner: req.user._id }],
+    })
+      .populate('zone', 'name city slug lat lng')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const tagged = posts.map((p) => ({
+      ...p,
+      postAs: String(p.agent) === userId ? 'agent' : 'owner',
+    }));
+    res.json(searchPosts(tagged, req.query));
+  } catch (err) {
+    res.status(500).json({ message: err.message || 'Failed to fetch posts' });
   }
 });
 

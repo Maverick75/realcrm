@@ -82,7 +82,7 @@ function PublisherTabs() {
       <PublisherTab.Screen
         name="PostsTab"
         component={PublisherPostsScreen}
-        options={{ title: 'My Posts', tabBarLabel: 'Posts', tabBarIcon: tabIcon('home') }}
+        options={{ title: 'My Properties', tabBarLabel: 'Properties', tabBarIcon: tabIcon('home') }}
       />
       <PublisherTab.Screen
         name="AssignedReqs"

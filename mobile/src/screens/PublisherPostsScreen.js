@@ -1,6 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  Alert,
   FlatList,
   Image,
   Pressable,
@@ -10,22 +9,39 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import api from '../api/client';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import EmptyState from '../components/EmptyState';
 import Fab from '../components/Fab';
+import { FacetPanel, FacetSearchBar } from '../components/FacetFilters';
 import ScreenHeader from '../components/ScreenHeader';
-import StatusBadge from '../components/StatusBadge';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { useAuth } from '../context/AuthContext';
+import useFacetSearch from '../hooks/useFacetSearch';
 import { PROPERTY_TYPE_LABELS } from '../constants/config';
-import { colors, radius, shadow, spacing, TOUCH_TARGET, type } from '../constants/theme';
+import {
+  colors,
+  radius,
+  shadow,
+  spacing,
+  statusCardColors,
+  TOUCH_TARGET,
+  type,
+} from '../constants/theme';
 
-const THUMB = 76;
+const THUMB = 48;
 const OPTION_MIN_HEIGHT = 56;
+
+// Facet rows, in display order. Keys match GET /api/properties/mine.
+const FACET_ROWS = [
+  { key: 'postAs', title: 'Posted as', label: (v) => (v === 'owner' ? 'Owner' : 'Agent') },
+  { key: 'status', title: 'Status' },
+  { key: 'type', title: 'Type', label: (v) => PROPERTY_TYPE_LABELS[v] || v },
+  { key: 'listingType', title: 'Listing' },
+  { key: 'bhk', title: 'Bedrooms', label: (v) => `${v} BHK` },
+  { key: 'zone', title: 'Area' },
+];
 
 function formatPrice(n) {
   if (n == null) return '—';
@@ -53,58 +69,30 @@ function ChooserOption({ icon, title, hint, onPress }) {
 
 export default function PublisherPostsScreen({ navigation }) {
   const { user, logout } = useAuth();
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const {
+    items,
+    facets,
+    total,
+    search,
+    setSearch,
+    filters,
+    toggleFilter,
+    clearFilters,
+    activeCount,
+    isFiltered,
+    loading,
+    refreshing,
+    reload,
+  } = useFacetSearch('/api/properties/mine', 'Could not load properties');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [chooserOpen, setChooserOpen] = useState(false);
-
-  const load = async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    try {
-      const [invRes, ownRes] = await Promise.all([
-        api.get('/api/properties').catch(() => ({ data: [] })),
-        api.get('/api/listings/mine').catch(() => ({ data: [] })),
-      ]);
-      const inventory = (invRes.data || []).map((p) => ({
-        ...p,
-        postAs: 'agent',
-      }));
-      const owned = (ownRes.data || []).map((p) => ({
-        ...p,
-        postAs: 'owner',
-      }));
-      const merged = [...inventory, ...owned].sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      );
-      setItems(merged);
-    } catch (err) {
-      Alert.alert('Error', err.response?.data?.message || 'Could not load posts');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [])
-  );
-
-  const counts = useMemo(() => {
-    return {
-      agent: items.filter((i) => i.postAs === 'agent').length,
-      owner: items.filter((i) => i.postAs === 'owner').length,
-    };
-  }, [items]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <LoadingOverlay visible={loading} />
       <ScreenHeader
-        title="My posts"
-        subtitle={`${user?.name} · Agent ${counts.agent} · Owner ${counts.owner}`}
+        title="My properties"
+        subtitle={`${user?.name} · ${isFiltered ? `${items.length} of ${total}` : total} properties`}
         right={
           <Pressable
             onPress={logout}
@@ -117,28 +105,64 @@ export default function PublisherPostsScreen({ navigation }) {
         }
       />
 
+      <FacetSearchBar
+        search={search}
+        onSearch={setSearch}
+        placeholder="Search title, address or area"
+        open={filtersOpen}
+        onToggle={() => setFiltersOpen((open) => !open)}
+        activeCount={activeCount}
+      />
+
       <FlatList
         data={items}
         keyExtractor={(item) => `${item.postAs}-${item._id}`}
         contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} />
-        }
-        ListEmptyComponent={
-          !loading ? (
-            <EmptyState
-              icon="home-outline"
-              title="No posts yet"
-              hint="Post as Agent (inventory) or as Owner (with T&Cs)"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={reload} />}
+        ListHeaderComponent={
+          filtersOpen ? (
+            <FacetPanel
+              rows={FACET_ROWS}
+              facets={facets}
+              filters={filters}
+              onToggle={toggleFilter}
+              onClear={clearFilters}
+              isFiltered={isFiltered}
             />
           ) : null
+        }
+        ListEmptyComponent={
+          loading || refreshing ? null : isFiltered ? (
+            <EmptyState icon="search-outline" title="No properties match" hint="Try clearing filters" />
+          ) : (
+            <EmptyState
+              icon="home-outline"
+              title="No properties yet"
+              hint="Post as Agent (inventory) or as Owner (with T&Cs)"
+            />
+          )
         }
         renderItem={({ item }) => {
           const thumb = item.images?.[0];
           const isOwner = item.postAs === 'owner';
+          const tint = statusCardColors[item.status];
+          // Status is the card colour; statuses without one are spelled out.
+          const meta = [
+            PROPERTY_TYPE_LABELS[item.type] || item.type,
+            item.listingType,
+            item.zone?.name || 'No area',
+            tint ? null : item.status,
+          ]
+            .filter(Boolean)
+            .join(' · ');
           return (
             <Card
-              style={styles.card}
+              style={[
+                styles.card,
+                tint && { backgroundColor: tint.background, borderLeftColor: tint.edge },
+              ]}
+              accessibilityLabel={`${item.title}, ${item.status}, ${formatPrice(item.price)}`}
               onPress={() => {
                 if (item.postAs === 'owner') {
                   navigation.navigate('OwnerListingForm', {
@@ -157,15 +181,15 @@ export default function PublisherPostsScreen({ navigation }) {
                 <Image source={{ uri: thumb }} style={styles.thumb} />
               ) : (
                 <View style={[styles.thumb, styles.thumbPh]}>
-                  <Ionicons name="image-outline" size={24} color={colors.primary} />
+                  <Ionicons name="image-outline" size={20} color={colors.primary} />
                 </View>
               )}
               <View style={styles.main}>
                 <View style={styles.row}>
-                  <Text style={styles.cardTitle} numberOfLines={2}>
+                  <Text style={styles.cardTitle} numberOfLines={1}>
                     {item.title}
                   </Text>
-                  <StatusBadge status={item.status} />
+                  <Text style={styles.price}>{formatPrice(item.price)}</Text>
                 </View>
                 <View style={styles.badgeRow}>
                   <View style={styles.modeBadge}>
@@ -173,12 +197,10 @@ export default function PublisherPostsScreen({ navigation }) {
                       {isOwner ? 'Owner' : 'Agent'}
                     </Text>
                   </View>
-                  <Text style={styles.meta}>
-                    {PROPERTY_TYPE_LABELS[item.type] || item.type} · {item.listingType}
+                  <Text style={styles.meta} numberOfLines={1}>
+                    {meta}
                   </Text>
                 </View>
-                <Text style={styles.zone}>{item.zone?.name || 'No area'}</Text>
-                <Text style={styles.price}>{formatPrice(item.price)}</Text>
               </View>
             </Card>
           );
@@ -226,8 +248,16 @@ const styles = StyleSheet.create({
   },
   logoutPressed: { backgroundColor: colors.primaryLight },
   list: { paddingHorizontal: spacing.lg, paddingBottom: 104 },
-  card: { flexDirection: 'row', gap: spacing.md },
-  thumb: { width: THUMB, height: THUMB, borderRadius: radius.control },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.border,
+  },
+  thumb: { width: THUMB, height: THUMB, borderRadius: spacing.sm },
   thumbPh: {
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
@@ -235,24 +265,23 @@ const styles = StyleSheet.create({
   },
   main: { flex: 1 },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-  cardTitle: { ...type.body, flex: 1, fontWeight: '700' },
+  cardTitle: { ...type.secondary, flex: 1, fontWeight: '700', color: colors.text },
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
     gap: spacing.sm,
   },
   modeBadge: {
     borderRadius: radius.pill,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    backgroundColor: colors.primaryLight,
+    paddingVertical: 2,
+    backgroundColor: colors.surface,
   },
   modeBadgeText: { ...type.caption, color: colors.primary },
   ownerBadgeText: { color: colors.accent },
-  meta: { ...type.secondary, flex: 1 },
-  zone: { ...type.secondary, marginTop: spacing.xs },
-  price: { ...type.body, marginTop: spacing.xs, fontWeight: '700' },
+  meta: { ...type.caption, flex: 1, fontWeight: '400' },
+  price: { ...type.secondary, fontWeight: '700', color: colors.text },
   chooser: {
     position: 'absolute',
     left: spacing.md,
