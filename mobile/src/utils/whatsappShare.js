@@ -1,10 +1,9 @@
 import { Alert, Linking, Share } from 'react-native';
+import { formatPrice } from '../components/PriceField';
 
 export function buildPropertyShareText(property, agentPhone = '') {
   const price =
-    property?.price != null
-      ? `₹${Number(property.price).toLocaleString('en-IN')}`
-      : 'Price on request';
+    property?.price != null ? formatPrice(property.price) : 'Price on request';
   const lines = [
     `🏠 ${property?.title || 'Property listing'}`,
     `${property?.type || ''} · ${property?.listingType || ''}`.trim(),
@@ -55,9 +54,9 @@ export function buildLeadShareText(requirement, agentName = '') {
   const budgetMax = requirement?.budgetMax;
   const budget =
     budgetMax != null
-      ? `₹${Number(budgetMin).toLocaleString('en-IN')} – ₹${Number(budgetMax).toLocaleString('en-IN')}`
+      ? `${formatPrice(budgetMin)} – ${formatPrice(budgetMax)}`
       : budgetMin
-        ? `From ₹${Number(budgetMin).toLocaleString('en-IN')}`
+        ? `From ${formatPrice(budgetMin)}`
         : 'Open';
   const zones =
     (requirement?.preferredZones || []).map((z) => z.name).join(', ') || 'Any Hyderabad zone';

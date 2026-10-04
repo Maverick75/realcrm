@@ -20,6 +20,7 @@ import EmptyState from '../components/EmptyState';
 import Fab from '../components/Fab';
 import { FacetPanel, FacetSearchBar } from '../components/FacetFilters';
 import Field from '../components/Field';
+import { formatPrice } from '../components/PriceField';
 import ScreenHeader from '../components/ScreenHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { useAuth } from '../context/AuthContext';
@@ -48,10 +49,9 @@ const FACET_ROWS = [
 ];
 
 function formatBudget(min, max) {
-  const fmt = (n) => (n == null ? null : `₹${Number(n).toLocaleString('en-IN')}`);
-  if (min && max) return `${fmt(min)} – ${fmt(max)}`;
-  if (max) return `Up to ${fmt(max)}`;
-  if (min) return `From ${fmt(min)}`;
+  if (min && max) return `${formatPrice(min)} – ${formatPrice(max)}`;
+  if (max) return `Up to ${formatPrice(max)}`;
+  if (min) return `From ${formatPrice(min)}`;
   return 'Budget open';
 }
 

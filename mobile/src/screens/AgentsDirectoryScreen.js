@@ -1,10 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, FlatList, RefreshControl, StyleSheet, Text } from 'react-native';
+import { Alert, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../api/client';
 import Card from '../components/Card';
 import EmptyState from '../components/EmptyState';
+import RatedAvatar from '../components/RatedAvatar';
 import ScreenHeader from '../components/ScreenHeader';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { colors, spacing, type } from '../constants/theme';
@@ -64,18 +65,29 @@ export default function AgentsDirectoryScreen({ navigation }) {
               navigation.navigate('AgentDetail', { agentId: item.user?._id || item.user })
             }
           >
-            <Text style={styles.name} numberOfLines={2}>
-              {item.user?.name || 'Agent'}
-            </Text>
-            <Text style={styles.agency}>{item.agencyName || 'Independent dealer'}</Text>
-            <Text style={styles.zones}>
-              {(item.zones || []).map((z) => z.name).join(', ') || 'No zones set'}
-            </Text>
-            <Text style={styles.meta}>
-              {item.availableCount ?? 0} available · {item.inventoryCount ?? 0} total
-              {item.onboardingComplete ? '' : ' · Incomplete onboarding'}
-            </Text>
-            {!!item.phone && <Text style={styles.phone}>{item.phone}</Text>}
+            <View style={styles.row}>
+              <RatedAvatar
+                uri={item.user?.profilePic}
+                name={item.user?.name}
+                ratingAvg={item.ratingAvg}
+                ratingCount={item.ratingCount}
+                size={56}
+              />
+              <View style={styles.metaCol}>
+                <Text style={styles.name} numberOfLines={2}>
+                  {item.user?.name || 'Agent'}
+                </Text>
+                <Text style={styles.agency}>{item.agencyName || 'Independent dealer'}</Text>
+                <Text style={styles.zones}>
+                  {(item.zones || []).map((z) => z.name).join(', ') || 'No zones set'}
+                </Text>
+                <Text style={styles.meta}>
+                  {item.availableCount ?? 0} available · {item.inventoryCount ?? 0} total
+                  {item.onboardingComplete ? '' : ' · Incomplete onboarding'}
+                </Text>
+                {!!item.phone && <Text style={styles.phone}>{item.phone}</Text>}
+              </View>
+            </View>
           </Card>
         )}
       />
@@ -86,6 +98,8 @@ export default function AgentsDirectoryScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+  row: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  metaCol: { flex: 1 },
   name: { ...type.body, fontWeight: '700' },
   agency: { ...type.secondary, marginTop: spacing.xs, color: colors.text },
   zones: { ...type.secondary, marginTop: spacing.xs },

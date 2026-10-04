@@ -14,6 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 import Card from '../components/Card';
+import { formatPrice } from '../components/PriceField';
 import ChipRow from '../components/ChipRow';
 import EmptyState from '../components/EmptyState';
 import ScreenHeader from '../components/ScreenHeader';
@@ -30,11 +31,6 @@ const LISTING_OPTIONS = ['', ...LISTING_TYPES];
 const TYPE_OPTIONS = ['', ...PROPERTY_TYPES];
 const LISTING_LABELS = { '': 'Any' };
 const TYPE_LABELS = { ...PROPERTY_TYPE_LABELS, '': 'Any' };
-
-function formatPrice(n) {
-  if (n == null) return '—';
-  return `₹${Number(n).toLocaleString('en-IN')}`;
-}
 
 export default function CustomerBrowseScreen({ navigation }) {
   const { logout, user } = useAuth();

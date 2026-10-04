@@ -38,6 +38,11 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'publisher', 'customer', 'agent', 'owner', 'sales'],
     default: 'publisher',
   },
+  // Canonical S3 URL for profile photo (clients get a signed URL via API)
+  profilePic: {
+    type: String,
+    default: '',
+  },
   createdAt: {
     type: Date,
     default: Date.now,

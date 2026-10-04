@@ -3,16 +3,13 @@ import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 import Button from '../components/Button';
+import { formatPrice } from '../components/PriceField';
 import Card from '../components/Card';
 import Field from '../components/Field';
 import LoadingOverlay from '../components/LoadingOverlay';
+import RatedAvatar from '../components/RatedAvatar';
 import { PROPERTY_TYPE_LABELS } from '../constants/config';
 import { colors, radius, spacing, type } from '../constants/theme';
-
-function formatPrice(n) {
-  if (n == null) return '—';
-  return `₹${Number(n).toLocaleString('en-IN')}`;
-}
 
 function InfoRow({ label, value }) {
   return (
@@ -74,6 +71,7 @@ export default function CustomerListingDetailScreen({ route, navigation }) {
   }
 
   const images = listing?.images || [];
+  const publisher = listing?.publisher;
 
   return (
     <View style={styles.container}>
@@ -112,10 +110,33 @@ export default function CustomerListingDetailScreen({ route, navigation }) {
           {!!listing?.notes && <InfoRow label="Notes" value={listing.notes} />}
         </Card>
 
+        {!!publisher && (
+          <Card>
+            <Text style={type.heading}>Publisher</Text>
+            <View style={styles.pubRow}>
+              <RatedAvatar
+                uri={publisher.profilePic}
+                name={publisher.name}
+                ratingAvg={publisher.ratingAvg}
+                ratingCount={publisher.ratingCount}
+                size={64}
+              />
+              <View style={styles.pubMeta}>
+                <Text style={[type.body, styles.pubName]}>{publisher.name}</Text>
+                {!!publisher.agencyName && (
+                  <Text style={type.secondary}>{publisher.agencyName}</Text>
+                )}
+                {!!publisher.phone && <Text style={type.secondary}>{publisher.phone}</Text>}
+              </View>
+            </View>
+          </Card>
+        )}
+
         <Card>
           <Text style={type.heading}>Enquire</Text>
           <Text style={[type.secondary, styles.hint]}>
-            Tell the publisher what you need — we will connect you.
+            Tell the publisher what you need — we will connect you. After you enquire you can
+            rate them from My enquiries.
           </Text>
           <Field
             accessibilityLabel="Enquiry message"
@@ -134,17 +155,19 @@ export default function CustomerListingDetailScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: spacing.xl },
+  content: { padding: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   hero: {
     width: '100%',
     height: 220,
     borderRadius: radius.control,
     backgroundColor: colors.border,
-    marginBottom: spacing.md,
   },
   heroPh: { alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
   price: { marginTop: spacing.xs, color: colors.primary },
   infoRow: { marginTop: spacing.sm },
   hint: { marginTop: spacing.xs },
   action: { marginTop: spacing.md },
+  pubRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md },
+  pubMeta: { flex: 1 },
+  pubName: { fontWeight: '700' },
 });

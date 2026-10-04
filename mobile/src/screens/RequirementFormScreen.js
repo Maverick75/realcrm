@@ -4,6 +4,7 @@ import api from '../api/client';
 import Button from '../components/Button';
 import ChipRow from '../components/ChipRow';
 import Field from '../components/Field';
+import { PRICE_UNITS, toRupees } from '../components/PriceField';
 import LoadingOverlay from '../components/LoadingOverlay';
 import ZonePicker from '../components/ZonePicker';
 import { LISTING_TYPES, REQUIREMENT_PROPERTY_TYPES } from '../constants/config';
@@ -20,6 +21,7 @@ export default function RequirementFormScreen({ navigation }) {
   const [bhkMax, setBhkMax] = useState('3');
   const [budgetMin, setBudgetMin] = useState('');
   const [budgetMax, setBudgetMax] = useState('');
+  const [budgetUnit, setBudgetUnit] = useState('Lakhs');
   const [selectedZones, setSelectedZones] = useState([]);
   const [notes, setNotes] = useState('');
   const [commissionPercent, setCommissionPercent] = useState('0');
@@ -45,6 +47,11 @@ export default function RequirementFormScreen({ navigation }) {
       Alert.alert('Validation', 'Buyer name is required.');
       return;
     }
+    const budgets = [budgetMin, budgetMax].filter((b) => b !== '');
+    if (budgets.some((b) => !(toRupees(b, budgetUnit) >= 0))) {
+      Alert.alert('Validation', 'Budget must be a number, e.g. 85 or 1.25.');
+      return;
+    }
     setSaving(true);
     try {
       const { data } = await api.post('/api/requirements', {
@@ -57,8 +64,8 @@ export default function RequirementFormScreen({ navigation }) {
         propertyType,
         bhkMin: bhkMin === '' ? null : Number(bhkMin),
         bhkMax: bhkMax === '' ? null : Number(bhkMax),
-        budgetMin: budgetMin === '' ? 0 : Number(budgetMin),
-        budgetMax: budgetMax === '' ? null : Number(budgetMax),
+        budgetMin: budgetMin === '' ? 0 : toRupees(budgetMin, budgetUnit),
+        budgetMax: budgetMax === '' ? null : toRupees(budgetMax, budgetUnit),
         preferredZones: selectedZones,
         notes,
         commissionPercent: commissionPercent === '' ? 0 : Number(commissionPercent),
@@ -121,19 +128,22 @@ export default function RequirementFormScreen({ navigation }) {
 
         <View style={styles.row}>
           <Field
-            label="Budget min ₹"
+            label="Budget min"
             containerStyle={styles.half}
-            keyboardType="number-pad"
+            keyboardType="decimal-pad"
             value={budgetMin}
             onChangeText={setBudgetMin}
           />
           <Field
-            label="Budget max ₹"
+            label="Budget max"
             containerStyle={styles.half}
-            keyboardType="number-pad"
+            keyboardType="decimal-pad"
             value={budgetMax}
             onChangeText={setBudgetMax}
           />
+        </View>
+        <View style={styles.units}>
+          <ChipRow options={PRICE_UNITS} value={budgetUnit} onSelect={setBudgetUnit} />
         </View>
 
         <Text style={styles.label}>Preferred areas</Text>
@@ -192,5 +202,6 @@ const styles = StyleSheet.create({
   // flex-end keeps the two inputs level when one label wraps at large font sizes
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.md },
   half: { flex: 1 },
+  units: { marginTop: spacing.sm },
   submit: { marginTop: spacing.lg },
 });

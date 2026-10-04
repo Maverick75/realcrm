@@ -16,6 +16,10 @@ const {
   uploadListingImage,
   deleteObjectByUrl,
   deleteObjectsByUrls,
+  withSignedImages,
+  withSignedImagesMany,
+  imageUrlsEqual,
+  canonicalImageUrl,
 } = require('../services/s3');
 
 const router = express.Router();
@@ -134,7 +138,7 @@ router.get('/', requireRole('agent', 'admin'), async (req, res) => {
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
-    res.json(properties);
+    res.json(await withSignedImagesMany(properties));
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to fetch properties' });
   }
@@ -156,7 +160,9 @@ router.get('/mine', requireRole('agent', 'owner'), async (req, res) => {
       ...p,
       postAs: String(p.agent) === userId ? 'agent' : 'owner',
     }));
-    res.json(searchPosts(tagged, req.query));
+    const result = searchPosts(tagged, req.query);
+    result.items = await withSignedImagesMany(result.items || []);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to fetch posts' });
   }
@@ -171,7 +177,7 @@ router.get('/:id', requireRole('agent', 'admin'), async (req, res) => {
     if (!canAccessProperty(req.user, property)) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    res.json(property);
+    res.json(await withSignedImages(property));
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to fetch property' });
   }
@@ -210,7 +216,7 @@ router.post('/', requireRole('agent'), async (req, res) => {
     const populated = await Property.findById(property._id)
       .populate('zone', 'name city slug lat lng')
       .populate('agent', 'name email');
-    res.status(201).json(populated);
+    res.status(201).json(await withSignedImages(populated));
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to create property' });
   }
@@ -229,7 +235,7 @@ router.put('/:id', requireRole('agent', 'admin'), async (req, res) => {
     const populated = await Property.findById(property._id)
       .populate('zone', 'name city slug lat lng')
       .populate('agent', 'name email');
-    res.json(populated);
+    res.json(await withSignedImages(populated));
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to update property' });
   }
@@ -253,7 +259,7 @@ router.patch('/:id/status', requireRole('agent', 'admin'), async (req, res) => {
     const populated = await Property.findById(property._id)
       .populate('zone', 'name city slug lat lng')
       .populate('agent', 'name email');
-    res.json(populated);
+    res.json(await withSignedImages(populated));
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to update status' });
   }
@@ -284,7 +290,7 @@ router.post(
         });
         const url = await uploadListingImage({
           buffer: file.buffer,
-          contentType: file.mimetype,
+          contentType: file.mimetype || 'image/jpeg',
           key,
         });
         urls.push(url);
@@ -295,7 +301,7 @@ router.post(
       const populated = await Property.findById(property._id)
         .populate('zone', 'name city slug lat lng')
         .populate('agent', 'name email');
-      res.json(populated);
+      res.json(await withSignedImages(populated));
     } catch (err) {
       console.error('Property image upload failed:', err.message);
       res.status(500).json({ message: err.message || 'Image upload failed' });
@@ -313,12 +319,13 @@ router.delete('/:id/images', requireRole('agent', 'admin'), async (req, res) => 
       return res.status(403).json({ message: 'Not authorized' });
     }
     const before = property.images || [];
-    property.images = before.filter((u) => u !== url);
-    const removed = property.images.length < before.length;
+    const match = before.find((u) => imageUrlsEqual(u, url));
+    property.images = before.filter((u) => !imageUrlsEqual(u, url));
+    const removed = !!match;
     await property.save();
     if (removed) {
       try {
-        await deleteObjectByUrl(url);
+        await deleteObjectByUrl(canonicalImageUrl(match));
       } catch (err) {
         console.warn('S3 image delete failed:', err.message);
       }
@@ -326,7 +333,7 @@ router.delete('/:id/images', requireRole('agent', 'admin'), async (req, res) => 
     const populated = await Property.findById(property._id)
       .populate('zone', 'name city slug lat lng')
       .populate('agent', 'name email');
-    res.json(populated);
+    res.json(await withSignedImages(populated));
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to delete image' });
   }

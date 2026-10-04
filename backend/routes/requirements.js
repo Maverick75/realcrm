@@ -11,13 +11,24 @@ const router = express.Router();
 
 router.use(auth);
 
+const { signStoredImageUrl } = require('../services/s3');
+
 function populateRequirement(query) {
   return query
     .populate('customer', 'name phone email status notes')
     .populate('preferredZones', 'name city slug')
-    .populate('assignedAgent', 'name email')
+    .populate('assignedAgent', 'name email profilePic')
     .populate('createdBy', 'name email')
     .populate('leadGenerator', 'name email');
+}
+
+async function withSignedAssignee(doc) {
+  if (!doc) return doc;
+  const obj = typeof doc.toObject === 'function' ? doc.toObject() : { ...doc };
+  if (obj.assignedAgent?.profilePic) {
+    obj.assignedAgent.profilePic = await signStoredImageUrl(obj.assignedAgent.profilePic);
+  }
+  return obj;
 }
 
 function canAccessRequirement(user, requirement) {
@@ -240,7 +251,7 @@ router.put('/:id', requireRole('admin', 'agent'), async (req, res) => {
 
     await requirement.save();
     const populated = await populateRequirement(Requirement.findById(requirement._id));
-    res.json(populated);
+    res.json(await withSignedAssignee(populated));
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to update requirement' });
   }
@@ -263,7 +274,7 @@ router.get('/:id/matches', requireRole('admin', 'agent'), async (req, res) => {
       await requirement.save();
     }
     const populated = await populateRequirement(Requirement.findById(requirement._id));
-    res.json({ requirement: populated, matches });
+    res.json({ requirement: await withSignedAssignee(populated), matches });
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to match agents' });
   }
@@ -277,7 +288,7 @@ router.get('/:id', requireRole('admin', 'agent'), async (req, res) => {
     if (!canAccessRequirement(req.user, requirement)) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    res.json(requirement);
+    res.json(await withSignedAssignee(requirement));
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to fetch requirement' });
   }
@@ -304,7 +315,7 @@ router.post('/:id/assign', requireRole('admin', 'agent'), async (req, res) => {
     });
 
     const populated = await populateRequirement(Requirement.findById(requirement._id));
-    res.json(populated);
+    res.json(await withSignedAssignee(populated));
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to assign agent' });
   }

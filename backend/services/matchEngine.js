@@ -1,5 +1,6 @@
 const AgentProfile = require('../models/AgentProfile');
 const Property = require('../models/Property');
+const { signStoredImageUrl } = require('./s3');
 
 function zoneIdsEqual(a, b) {
   return String(a) === String(b);
@@ -19,7 +20,7 @@ async function matchAgentsForRequirement(requirement, { limit = 20 } = {}) {
   );
 
   const profiles = await AgentProfile.find({ onboardingComplete: true })
-    .populate('user', 'name email role')
+    .populate('user', 'name email role profilePic')
     .populate('zones', 'name city slug');
 
   const agentIds = profiles.map((p) => p.user?._id).filter(Boolean);
@@ -124,6 +125,10 @@ async function matchAgentsForRequirement(requirement, { limit = 20 } = {}) {
     score = Math.min(100, score);
     if (score <= 0) continue;
 
+    const profilePic = profile.user.profilePic
+      ? await signStoredImageUrl(profile.user.profilePic)
+      : '';
+
     results.push({
       agent: {
         id: profile.user._id,
@@ -132,6 +137,7 @@ async function matchAgentsForRequirement(requirement, { limit = 20 } = {}) {
         phone: profile.phone,
         agencyName: profile.agencyName,
         yearsExperience: profile.yearsExperience,
+        profilePic,
         ratingAvg,
         ratingCount,
         zones: profile.zones,

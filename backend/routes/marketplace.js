@@ -1,8 +1,14 @@
 const express = require('express');
 const Property = require('../models/Property');
 const Enquiry = require('../models/Enquiry');
+const AgentProfile = require('../models/AgentProfile');
 const auth = require('../middleware/auth');
 const { requireRole, normalizeRole } = require('../middleware/roles');
+const {
+  withSignedImages,
+  withSignedImagesMany,
+  signStoredImageUrl,
+} = require('../services/s3');
 
 const router = express.Router();
 
@@ -11,8 +17,46 @@ router.use(auth);
 function populateProperty(query) {
   return query
     .populate('zone', 'name city slug lat lng')
-    .populate('agent', 'name email')
-    .populate('owner', 'name email');
+    .populate('agent', 'name email profilePic')
+    .populate('owner', 'name email profilePic');
+}
+
+async function attachPublisherCard(listingDoc) {
+  const listing =
+    typeof listingDoc.toObject === 'function' ? listingDoc.toObject() : { ...listingDoc };
+
+  const pubUser = listing.agent || listing.owner;
+  if (!pubUser?._id && !pubUser) {
+    listing.publisher = null;
+    return listing;
+  }
+
+  const userObj =
+    typeof pubUser.toObject === 'function' ? pubUser.toObject() : { ...pubUser };
+  const userId = userObj._id || userObj;
+  const profile = await AgentProfile.findOne({ user: userId }).select(
+    'ratingAvg ratingCount agencyName phone'
+  );
+
+  const profilePic = userObj.profilePic
+    ? await signStoredImageUrl(userObj.profilePic)
+    : '';
+
+  listing.publisher = {
+    id: String(userId),
+    name: userObj.name || 'Publisher',
+    email: userObj.email || '',
+    profilePic,
+    agencyName: profile?.agencyName || '',
+    phone: profile?.phone || '',
+    ratingAvg: profile?.ratingAvg || 0,
+    ratingCount: profile?.ratingCount || 0,
+  };
+  return listing;
+}
+
+async function attachPublisherCards(listings) {
+  return Promise.all(listings.map((l) => attachPublisherCard(l)));
 }
 
 /** Published inventory + owner listings available to customers */
@@ -35,7 +79,8 @@ router.get(
       const listings = await populateProperty(
         Property.find(filter).sort({ createdAt: -1 }).limit(100)
       );
-      res.json(listings);
+      const signed = await withSignedImagesMany(listings);
+      res.json(await attachPublisherCards(signed));
     } catch (err) {
       res.status(500).json({ message: err.message || 'Failed to load marketplace' });
     }
@@ -55,7 +100,8 @@ router.get(
       ) {
         return res.status(404).json({ message: 'Listing not found' });
       }
-      res.json(listing);
+      const signed = await withSignedImages(listing);
+      res.json(await attachPublisherCard(signed));
     } catch (err) {
       res.status(500).json({ message: err.message || 'Failed to load listing' });
     }
@@ -81,13 +127,13 @@ router.post('/enquiries', requireRole('customer'), async (req, res) => {
     });
 
     const populated = await Enquiry.findById(enquiry._id)
-      .populate('customer', 'name email')
+      .populate('customer', 'name email profilePic')
       .populate({
         path: 'property',
         populate: [
           { path: 'zone', select: 'name city' },
-          { path: 'agent', select: 'name email' },
-          { path: 'owner', select: 'name email' },
+          { path: 'agent', select: 'name email profilePic' },
+          { path: 'owner', select: 'name email profilePic' },
         ],
       });
     res.status(201).json(populated);
@@ -101,10 +147,24 @@ router.get('/enquiries/mine', requireRole('customer'), async (req, res) => {
     const items = await Enquiry.find({ customer: req.user._id })
       .populate({
         path: 'property',
-        populate: [{ path: 'zone', select: 'name city' }],
+        populate: [
+          { path: 'zone', select: 'name city' },
+          { path: 'agent', select: 'name email profilePic' },
+          { path: 'owner', select: 'name email profilePic' },
+        ],
       })
       .sort({ createdAt: -1 });
-    res.json(items);
+
+    const enriched = await Promise.all(
+      items.map(async (item) => {
+        const obj = item.toObject();
+        if (obj.property) {
+          obj.property = await attachPublisherCard(obj.property);
+        }
+        return obj;
+      })
+    );
+    res.json(enriched);
   } catch (err) {
     res.status(500).json({ message: err.message || 'Failed to fetch enquiries' });
   }

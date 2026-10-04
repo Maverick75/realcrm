@@ -21,6 +21,13 @@ export function splitRupees(rupees) {
   return { amount: String(rupees / UNIT_RUPEES[unit]), unit };
 }
 
+/** 300000 → "3L", 30000000 → "3Cr" (at most 2 decimals). */
+export function formatPrice(rupees) {
+  if (rupees == null) return '—';
+  const { amount, unit } = splitRupees(Number(rupees));
+  return `${Number(Number(amount).toFixed(2))}${unit === 'Cr' ? 'Cr' : 'L'}`;
+}
+
 /**
  * Price typed as an amount plus a Lakhs / Cr denomination.
  * @param {{ label: string, amount: string, unit: string, onChangeAmount: (text: string) => void, onChangeUnit: (unit: string) => void }} props
@@ -35,7 +42,6 @@ export default function PriceField({ label, amount, unit, onChangeAmount, onChan
         placeholder={unit === 'Cr' ? '1.25' : '85'}
         value={amount}
         onChangeText={onChangeAmount}
-        hint={rupees > 0 ? `= ₹${rupees.toLocaleString('en-IN')}` : undefined}
         error={amount !== '' && !(rupees > 0) ? 'Enter a number, e.g. 85 or 1.25' : undefined}
       />
       <View style={styles.units}>

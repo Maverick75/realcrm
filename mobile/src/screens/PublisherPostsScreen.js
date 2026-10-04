@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../components/Button';
+import { formatPrice } from '../components/PriceField';
 import Card from '../components/Card';
 import EmptyState from '../components/EmptyState';
 import Fab from '../components/Fab';
@@ -42,11 +43,6 @@ const FACET_ROWS = [
   { key: 'bhk', title: 'Bedrooms', label: (v) => `${v} BHK` },
   { key: 'zone', title: 'Area' },
 ];
-
-function formatPrice(n) {
-  if (n == null) return '—';
-  return `₹${Number(n).toLocaleString('en-IN')}`;
-}
 
 function ChooserOption({ icon, title, hint, onPress }) {
   return (

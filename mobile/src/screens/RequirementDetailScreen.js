@@ -5,21 +5,17 @@ import api from '../api/client';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import ChipRow from '../components/ChipRow';
+import { formatPrice } from '../components/PriceField';
 import Field from '../components/Field';
+import RateAgentCard from '../components/RateAgentCard';
+import RatedAvatar from '../components/RatedAvatar';
 import StatusBadge from '../components/StatusBadge';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { useAuth } from '../context/AuthContext';
 import { CARE_INTERACTION_TYPES } from '../constants/config';
+import { starsLabel } from '../constants/rating';
 import { colors, radius, spacing, type } from '../constants/theme';
 import { shareLeadRequestOnWhatsApp } from '../utils/whatsappShare';
-
-const RATING_OPTIONS = [1, 2, 3, 4, 5];
-const RATING_LABELS = { 1: '1★', 2: '2★', 3: '3★', 4: '4★', 5: '5★' };
-
-function starsLabel(avg, count) {
-  if (!count) return 'No ratings yet';
-  return `★ ${Number(avg).toFixed(1)} · ${count} review${count === 1 ? '' : 's'}`;
-}
 
 function InfoRow({ label, value, strong }) {
   return (
@@ -47,9 +43,6 @@ export default function RequirementDetailScreen({ route }) {
   const [careType, setCareType] = useState('FollowUp');
   const [careNotes, setCareNotes] = useState('');
   const [nextFollowUpAt, setNextFollowUpAt] = useState('');
-
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewComment, setReviewComment] = useState('');
 
   const isAdmin = user?.role === 'admin';
   const uid = String(user?.id || user?._id || '');
@@ -184,25 +177,6 @@ export default function RequirementDetailScreen({ route }) {
     }
   };
 
-  const submitReview = async () => {
-    if (!servingAgentId) return;
-    setBusy(true);
-    try {
-      await api.post(`/api/agents/${servingAgentId}/reviews`, {
-        rating: reviewRating,
-        comment: reviewComment.trim(),
-        requirement: requirementId,
-      });
-      Alert.alert('Thank you', 'Your rating helps the community pick great agents.');
-      setReviewComment('');
-      await load();
-    } catch (err) {
-      Alert.alert('Error', err.response?.data?.message || 'Review failed');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const markClosed = async () => {
     setBusy(true);
     try {
@@ -230,10 +204,8 @@ export default function RequirementDetailScreen({ route }) {
     );
   }
 
-  const budgetLabel = `₹${(requirement?.budgetMin || 0).toLocaleString('en-IN')}${
-    requirement?.budgetMax != null
-      ? ` – ₹${Number(requirement.budgetMax).toLocaleString('en-IN')}`
-      : '+'
+  const budgetLabel = `${formatPrice(requirement?.budgetMin || 0)}${
+    requirement?.budgetMax != null ? ` – ${formatPrice(requirement.budgetMax)}` : '+'
   }`;
 
   return (
@@ -372,7 +344,19 @@ export default function RequirementDetailScreen({ route }) {
             matches.map((m, index) => (
               <View key={m.agent.id} style={[styles.listRow, index > 0 && styles.divider]}>
                 <View style={styles.titleRow}>
-                  <Text style={[type.body, styles.semibold, styles.flex]}>{m.agent.name}</Text>
+                  <RatedAvatar
+                    uri={m.agent.profilePic}
+                    name={m.agent.name}
+                    ratingAvg={m.agent.ratingAvg}
+                    ratingCount={m.agent.ratingCount}
+                    size={48}
+                  />
+                  <View style={styles.flex}>
+                    <Text style={[type.body, styles.semibold]}>{m.agent.name}</Text>
+                    <Text style={[type.secondary, styles.rowLine]}>
+                      {starsLabel(m.agent.ratingAvg, m.agent.ratingCount)}
+                    </Text>
+                  </View>
                   <Text
                     style={[type.heading, styles.score]}
                     accessibilityLabel={`Match score ${m.score}`}
@@ -382,9 +366,6 @@ export default function RequirementDetailScreen({ route }) {
                 </View>
                 <Text style={[type.secondary, styles.rowLine]}>
                   {m.agent.agencyName || 'Independent'}
-                </Text>
-                <Text style={[type.secondary, styles.rowLine]}>
-                  {starsLabel(m.agent.ratingAvg, m.agent.ratingCount)}
                   {m.agent.yearsExperience
                     ? ` · ${m.agent.yearsExperience} yrs`
                     : ''}
@@ -420,40 +401,38 @@ export default function RequirementDetailScreen({ route }) {
         </Card>
 
         {servingAgentId && canEditCommission && (
-          <Card>
-            <Text style={type.heading}>Rate serving agent</Text>
-            <Text style={[type.secondary, styles.hint]}>
-              Help the community recognize great buyer care.
-            </Text>
-            <ChipRow
-              options={RATING_OPTIONS}
-              value={reviewRating}
-              onSelect={setReviewRating}
-              labels={RATING_LABELS}
-            />
-            <Field
-              accessibilityLabel="Comment"
-              containerStyle={styles.action}
-              value={reviewComment}
-              onChangeText={setReviewComment}
-              multiline
-              placeholder="Optional comment"
-            />
-            <Button
-              title="Submit rating"
-              variant="secondary"
-              onPress={submitReview}
-              style={styles.action}
+          <>
+            <RateAgentCard
+              agentId={servingAgentId}
+              agentName={
+                requirement?.assignedAgent?.name ||
+                matches.find((m) => String(m.agent.id) === String(servingAgentId))?.agent
+                  ?.name
+              }
+              profilePic={
+                requirement?.assignedAgent?.profilePic ||
+                matches.find((m) => String(m.agent.id) === String(servingAgentId))?.agent
+                  ?.profilePic
+              }
+              ratingAvg={
+                matches.find((m) => String(m.agent.id) === String(servingAgentId))?.agent
+                  ?.ratingAvg || 0
+              }
+              ratingCount={
+                matches.find((m) => String(m.agent.id) === String(servingAgentId))?.agent
+                  ?.ratingCount || 0
+              }
+              requirementId={requirementId}
+              title={isAdmin ? 'Business Owner rating' : 'Rate serving agent'}
+              hint="Help the community recognize great buyer care."
+              onSubmitted={() => load()}
             />
             {requirement?.status !== 'Closed' && (
-              <Button
-                title="Mark lead closed"
-                variant="danger"
-                onPress={markClosed}
-                style={styles.stacked}
-              />
+              <Card>
+                <Button title="Mark lead closed" variant="danger" onPress={markClosed} />
+              </Card>
             )}
-          </Card>
+          </>
         )}
       </ScrollView>
     </View>

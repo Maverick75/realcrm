@@ -36,6 +36,16 @@ Legacy `agent` / `owner` accounts migrate to `publisher` on login.
 
 APIs: `GET /api/marketplace/listings`, `POST /api/marketplace/enquiries`, `GET /api/marketplace/enquiries/mine`.
 
+### Profile photos & agent ratings
+
+- Every user can upload a **profile picture** (`POST /api/auth/avatar`, S3 prefix `avatars/…`). Login/`/api/auth/me` return a **presigned** `profilePic`.
+- Publisher avatars show a **color-coded 5-star ring**: 1★ red → 2★ orange → 3★ amber → 4★ green → 5★ teal (gray when unrated).
+- Who can rate publishers:
+  - **Customer** — after an enquiry, from **My enquiries** (`enquiry` on `POST /api/agents/:id/reviews`)
+  - **Business Owner (admin)** — from agent detail (general rating) or on an assigned lead
+  - **Lead generator (publisher)** — rate the serving agent on a requirement (existing flow)
+- Aggregates live on `AgentProfile.ratingAvg` / `ratingCount` and boost match scores.
+
 ### Lead capture, match + share, split commission
 
 Both **Admin** and **Agent** can:
@@ -58,7 +68,7 @@ Owners create **their own** listings (not agent inventory). Flow:
 4. Optionally toggle **Listed via agent** + free-text note (informational only — no agent claim workflow yet)
 5. Check **I accept** → **Publish** → status becomes `Available` (drafts stay `Draft`)
 
-Publish rules: ≥1 image, non-empty terms text, and `accepted: true`. Owner APIs are under `/api/listings` (agent Instagram/video paths stay on `/api/properties`). **Listing photos are uploaded to AWS S3** (`listings/{ownerId}/{listingId}/…`); set `S3_BUCKET_NAME`, `AWS_REGION`, `AWS_S3_ACCESS_KEY_ID`, and `AWS_S3_SECRET_ACCESS_KEY` in `backend/.env`. Bucket needs public-read (or CloudFront via `S3_PUBLIC_BASE_URL`) for the `listings/` prefix so the mobile app can display images.
+Publish rules: ≥1 image, non-empty terms text, and `accepted: true`. Owner APIs are under `/api/listings` (agent Instagram/video paths stay on `/api/properties`). **Photos upload to AWS S3** (`listings/…` and `inventory/…`). The API returns **presigned GET URLs** so private buckets (Block Public Access) still render in the app — no public bucket policy required. Set `S3_BUCKET_NAME`, `AWS_REGION`, `AWS_S3_ACCESS_KEY_ID`, `AWS_S3_SECRET_ACCESS_KEY` (IAM needs `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject`).
 
 ## Matching score (MVP)
 

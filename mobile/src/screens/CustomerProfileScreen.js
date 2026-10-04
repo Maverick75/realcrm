@@ -4,16 +4,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 import Card from '../components/Card';
+import ProfileAvatarPicker from '../components/ProfileAvatarPicker';
 import ScreenHeader from '../components/ScreenHeader';
 import { colors, spacing, type } from '../constants/theme';
 
 export default function CustomerProfileScreen() {
-  const { user, logout, apiUrl } = useAuth();
+  const { user, logout, apiUrl, updateUser } = useAuth();
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScreenHeader title="Profile" />
       <ScrollView contentContainerStyle={styles.content}>
+        <ProfileAvatarPicker
+          user={user}
+          onUpdated={(next) => updateUser(next)}
+          showRating={false}
+        />
         <Card style={styles.card}>
           <Text style={[styles.label, styles.firstLabel]}>Name</Text>
           <Text style={styles.value}>{user?.name || '—'}</Text>

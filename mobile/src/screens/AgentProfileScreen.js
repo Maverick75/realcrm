@@ -7,6 +7,7 @@ import api from '../api/client';
 import LoadingOverlay from '../components/LoadingOverlay';
 import ZonePicker from '../components/ZonePicker';
 import ZoneMapPreview from '../components/ZoneMapPreview';
+import ProfileAvatarPicker from '../components/ProfileAvatarPicker';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 import Card from '../components/Card';
@@ -49,6 +50,13 @@ export default function AgentProfileScreen() {
       setOpenaiModel(meRes.data.openaiModel || 'gpt-4o-mini');
       setOpenaiKeyInput('');
       setIgStatus(igRes.data);
+      if (meRes.data.user?.profilePic != null || meRes.data.ratingAvg != null) {
+        await updateUser({
+          profilePic: meRes.data.user?.profilePic || user?.profilePic,
+          ratingAvg: meRes.data.ratingAvg ?? user?.ratingAvg ?? 0,
+          ratingCount: meRes.data.ratingCount ?? user?.ratingCount ?? 0,
+        });
+      }
     } catch (err) {
       Alert.alert('Error', err.response?.data?.message || 'Failed to load profile');
     } finally {
@@ -160,6 +168,11 @@ export default function AgentProfileScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <ScreenHeader title={user?.name} subtitle={user?.email} />
         <View style={styles.body}>
+          <ProfileAvatarPicker
+            user={user}
+            onUpdated={(next) => updateUser(next)}
+            showRating
+          />
           <Field
             label="Phone"
             containerStyle={styles.firstField}
