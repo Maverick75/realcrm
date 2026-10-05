@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
@@ -13,12 +14,12 @@ import Button from '../components/Button';
 import Card from '../components/Card';
 import Field from '../components/Field';
 import ScreenHeader from '../components/ScreenHeader';
-import { colors, spacing, type } from '../constants/theme';
+import { colors, radius, spacing, TOUCH_TARGET, type } from '../constants/theme';
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function AgentProfileScreen() {
-  const { user, logout, updateUser } = useAuth();
+  const { user, logout, updateUser, refreshSessionUser } = useAuth();
   const [phone, setPhone] = useState('');
   const [agencyName, setAgencyName] = useState('');
   const [bio, setBio] = useState('');
@@ -31,6 +32,8 @@ export default function AgentProfileScreen() {
   const [openaiModel, setOpenaiModel] = useState('gpt-4o-mini');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Key of the expanded section; one at a time keeps the screen short.
+  const [open, setOpen] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -66,6 +69,7 @@ export default function AgentProfileScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      refreshSessionUser();
       load();
     }, [])
   );
@@ -162,57 +166,94 @@ export default function AgentProfileScreen() {
     ]);
   };
 
+  const toggle = (key) => setOpen((current) => (current === key ? null : key));
+  const personalSummary = [phone.trim(), agencyName.trim()].filter(Boolean).join(' · ');
+  const areaCount = selectedZones.length;
+  const igConnected = !!igStatus?.connected;
+  const igHandle = `@${igStatus?.instagramUsername || 'business'}`;
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <LoadingOverlay visible={loading || saving} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <ScreenHeader title={user?.name} subtitle={user?.email} />
+        <ScreenHeader title="Profile" />
         <View style={styles.body}>
-          <ProfileAvatarPicker
-            user={user}
-            onUpdated={(next) => updateUser(next)}
-            showRating
-          />
-          <Field
-            label="Phone"
-            containerStyle={styles.firstField}
-            value={phone}
-            onChangeText={setPhone}
-          />
+          <Card style={styles.hero}>
+            <ProfileAvatarPicker
+              user={user}
+              onUpdated={(next) => updateUser(next)}
+              showRating
+            />
+            <Text style={styles.heroName} numberOfLines={1}>
+              {user?.name}
+            </Text>
+            <Text style={styles.heroEmail} numberOfLines={1}>
+              {user?.email}
+            </Text>
+          </Card>
 
-          <Field label="Agency" value={agencyName} onChangeText={setAgencyName} />
-
-          <Field
-            label="Years experience"
-            keyboardType="number-pad"
-            value={yearsExperience}
-            onChangeText={setYearsExperience}
-          />
-
-          <Field label="Bio" multiline value={bio} onChangeText={setBio} />
-
-          <Text style={styles.label}>Areas served</Text>
-          <ZonePicker
-            zones={zones}
-            selectedIds={selectedZones}
-            onChange={setSelectedZones}
-            multi
-            placeholder="Select areas served"
-          />
-          <ZoneMapPreview zones={zones} selectedIds={selectedZones} height={200} />
-
-          <Button title="Save profile" onPress={onSave} style={styles.save} />
-
-          <Text style={styles.section} accessibilityRole="header">
-            Your OpenAI credits (LLM)
+          <Text style={styles.group} accessibilityRole="header">
+            Account
           </Text>
-          <Card>
+          <Section
+            icon="person-outline"
+            title="Personal details"
+            summary={personalSummary || 'Add phone and agency'}
+            done={!!phone.trim()}
+            open={open === 'personal'}
+            onToggle={() => toggle('personal')}
+          >
+            <Field
+              label="Phone"
+              containerStyle={styles.firstField}
+              value={phone}
+              onChangeText={setPhone}
+            />
+            <Field label="Agency" value={agencyName} onChangeText={setAgencyName} />
+            <Field
+              label="Years experience"
+              keyboardType="number-pad"
+              value={yearsExperience}
+              onChangeText={setYearsExperience}
+            />
+            <Field label="Bio" multiline value={bio} onChangeText={setBio} />
+            <Button title="Save profile" onPress={onSave} style={styles.cardAction} />
+          </Section>
+          <Section
+            icon="map-outline"
+            title="Areas served"
+            summary={
+              areaCount ? `${areaCount} area${areaCount === 1 ? '' : 's'} selected` : 'No areas selected'
+            }
+            done={areaCount > 0}
+            open={open === 'areas'}
+            onToggle={() => toggle('areas')}
+          >
+            <ZonePicker
+              zones={zones}
+              selectedIds={selectedZones}
+              onChange={setSelectedZones}
+              multi
+              placeholder="Select areas served"
+            />
+            <ZoneMapPreview zones={zones} selectedIds={selectedZones} height={200} />
+            <Button title="Save profile" onPress={onSave} style={styles.cardAction} />
+          </Section>
+
+          <Text style={styles.group} accessibilityRole="header">
+            Integrations
+          </Text>
+          <Section
+            icon="sparkles-outline"
+            title="AI captions (OpenAI)"
+            summary={hasOpenaiKey ? 'Key saved' : 'Not set up'}
+            done={hasOpenaiKey}
+            open={open === 'openai'}
+            onToggle={() => toggle('openai')}
+          >
             <Text style={styles.cardText}>
               Paste your personal OpenAI API key. Reel captions use your free/paid credits — not a
               shared platform key. Keys are stored encrypted and never shown again.
-            </Text>
-            <Text style={styles.statusLine}>
-              Status: {hasOpenaiKey ? 'Key saved' : 'No key yet'}
             </Text>
             <Field
               label="OpenAI API key"
@@ -244,37 +285,27 @@ export default function AgentProfileScreen() {
                 style={styles.cardActionNext}
               />
             )}
-          </Card>
-
-          <Text style={styles.section} accessibilityRole="header">
-            Instagram Reels
-          </Text>
-          {igStatus?.connected ? (
-            <Card>
-              <Text style={styles.cardText}>
-                Connected as @{igStatus.instagramUsername || 'business'}
-              </Text>
-              <Button
-                title="Disconnect"
-                onPress={disconnectInstagram}
-                variant="danger"
-                style={styles.cardActionNext}
-              />
-            </Card>
-          ) : (
-            <Card>
-              <Text style={styles.cardText}>
-                Connect an Instagram Business account linked to a Facebook Page to auto-publish
-                Reels.
-              </Text>
-              <Button
-                title="Connect Instagram"
-                onPress={connectInstagram}
-                variant="secondary"
-                style={styles.cardActionNext}
-              />
-            </Card>
-          )}
+          </Section>
+          <Section
+            icon="logo-instagram"
+            title="Instagram Reels"
+            summary={igConnected ? igHandle : 'Not connected'}
+            done={igConnected}
+            open={open === 'instagram'}
+            onToggle={() => toggle('instagram')}
+          >
+            <Text style={styles.cardText}>
+              {igConnected
+                ? `Connected as ${igHandle}`
+                : 'Connect an Instagram Business account linked to a Facebook Page to auto-publish Reels.'}
+            </Text>
+            <Button
+              title={igConnected ? 'Disconnect' : 'Connect Instagram'}
+              onPress={igConnected ? disconnectInstagram : connectInstagram}
+              variant={igConnected ? 'danger' : 'secondary'}
+              style={styles.cardActionNext}
+            />
+          </Section>
 
           <Button title="Logout" onPress={logout} variant="danger" style={styles.logout} />
         </View>
@@ -283,22 +314,78 @@ export default function AgentProfileScreen() {
   );
 }
 
+/** Collapsible settings row: icon, title and a one-line status; children show when open. */
+function Section({ icon, title, summary, done, open, onToggle, children }) {
+  return (
+    <Card style={styles.sectionCard}>
+      <Pressable
+        onPress={onToggle}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={`${title}, ${summary}`}
+        style={({ pressed }) => [styles.sectionHead, pressed && styles.sectionPressed]}
+      >
+        <View style={styles.sectionIcon}>
+          <Ionicons name={icon} size={20} color={colors.primary} />
+        </View>
+        <View style={styles.sectionText}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          <Text style={[styles.sectionSummary, done && styles.sectionDone]} numberOfLines={1}>
+            {summary}
+          </Text>
+        </View>
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textMuted} />
+      </Pressable>
+      {open && <View style={styles.sectionBody}>{children}</View>}
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { paddingBottom: spacing.xl },
   body: { paddingHorizontal: spacing.lg },
-  firstField: { marginTop: -spacing.md },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: spacing.md,
-    marginBottom: 6,
+  hero: { alignItems: 'center', paddingVertical: spacing.lg },
+  heroName: { ...type.heading },
+  heroEmail: { ...type.secondary, marginTop: 2 },
+  group: {
+    ...type.caption,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
   },
-  save: { marginTop: spacing.lg },
-  section: { ...type.heading, marginTop: spacing.xl, marginBottom: spacing.sm },
+  sectionCard: { padding: 0, marginBottom: spacing.sm },
+  sectionHead: {
+    borderRadius: radius.card,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: TOUCH_TARGET + spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  sectionPressed: { backgroundColor: colors.primaryLight },
+  sectionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.control,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  sectionText: { flex: 1, marginRight: spacing.sm },
+  sectionTitle: { ...type.body, fontWeight: '600' },
+  sectionSummary: { ...type.secondary, marginTop: 2 },
+  sectionDone: { color: colors.success },
+  sectionBody: {
+    padding: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  firstField: { marginTop: -spacing.md },
   cardText: { ...type.secondary },
-  statusLine: { ...type.secondary, color: colors.text, fontWeight: '600', marginTop: spacing.sm },
   cardAction: { marginTop: spacing.md },
   cardActionNext: { marginTop: spacing.sm },
   logout: { marginTop: spacing.lg },

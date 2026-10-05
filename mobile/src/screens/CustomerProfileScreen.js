@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 import Card from '../components/Card';
@@ -9,7 +10,13 @@ import ScreenHeader from '../components/ScreenHeader';
 import { colors, spacing, type } from '../constants/theme';
 
 export default function CustomerProfileScreen() {
-  const { user, logout, apiUrl, updateUser } = useAuth();
+  const { user, logout, apiUrl, updateUser, refreshSessionUser } = useAuth();
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshSessionUser();
+    }, [refreshSessionUser])
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>

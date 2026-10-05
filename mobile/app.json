@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "RealCRM",
+    "name": "Your Bhoomi",
     "slug": "realcrm",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -36,7 +36,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow RealCRM to access videos for Instagram Reels."
+          "photosPermission": "Allow Your Bhoomi to access videos for Instagram Reels."
         }
       ],
       [

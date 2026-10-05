@@ -80,7 +80,7 @@ export default function RegisterScreen({ navigation }) {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.brand}>RealCRM</Text>
+          <Text style={styles.brand}>Your Bhoomi</Text>
           <Text style={styles.title} accessibilityRole="header">
             Create account
           </Text>

@@ -63,7 +63,7 @@ export default function LoginScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
             <Text style={styles.brand} accessibilityRole="header">
-              RealCRM
+              Your Bhoomi
             </Text>
             <Text style={styles.subtitle}>Match buyers to the right agents</Text>
           </View>

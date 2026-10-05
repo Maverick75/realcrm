@@ -50,7 +50,6 @@ export default function RequirementDetailScreen({ route }) {
     isAdmin ||
     String(requirement?.createdBy?._id || requirement?.createdBy) === uid ||
     String(requirement?.leadGenerator?._id || requirement?.leadGenerator) === uid;
-  const canMatch = !!requirement; // access already enforced by API
   const servingAgentId =
     requirement?.assignedAgent?._id || requirement?.assignedAgent || null;
 
@@ -80,13 +79,18 @@ export default function RequirementDetailScreen({ route }) {
         setInteractions(intRes.data || []);
       }
 
-      if (canMatch || isAdmin || user?.role === 'agent') {
+      try {
         const matchRes = await api.get(`/api/requirements/${requirementId}/matches`);
         setMatches(matchRes.data.matches || []);
         if (matchRes.data.requirement) {
           setRequirement(matchRes.data.requirement);
           hydrateCommission(matchRes.data.requirement);
         }
+      } catch (matchErr) {
+        if (matchErr.response?.status !== 403) {
+          throw matchErr;
+        }
+        setMatches([]);
       }
     } catch (err) {
       Alert.alert('Error', err.response?.data?.message || 'Failed to load');

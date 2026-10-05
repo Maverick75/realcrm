@@ -100,6 +100,18 @@ export function AuthProvider({ children }) {
     }
   }, [token, isPublisher, updateUser]);
 
+  /** Refresh signed profilePic / ratings (presigned URLs expire). */
+  const refreshSessionUser = useCallback(async () => {
+    if (!token) return null;
+    try {
+      const { data } = await api.get('/api/auth/me');
+      if (data?.user) await updateUser(data.user);
+      return data?.user || null;
+    } catch {
+      return null;
+    }
+  }, [token, updateUser]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -117,6 +129,7 @@ export function AuthProvider({ children }) {
         updateApiUrl,
         updateUser,
         refreshProfileFlag,
+        refreshSessionUser,
       }}
     >
       {children}

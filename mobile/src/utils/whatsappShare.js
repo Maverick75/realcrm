@@ -14,7 +14,7 @@ export function buildPropertyShareText(property, agentPhone = '') {
     property?.notes ? `Notes: ${property.notes}` : null,
     agentPhone ? `Contact: ${agentPhone}` : null,
     '',
-    'Shared via RealCRM',
+    'Shared via Your Bhoomi',
   ].filter(Boolean);
   return lines.join('\n');
 }
@@ -62,7 +62,7 @@ export function buildLeadShareText(requirement, agentName = '') {
     (requirement?.preferredZones || []).map((z) => z.name).join(', ') || 'Any Hyderabad zone';
   const greeting = agentName ? `Hi ${agentName},\n\n` : '';
   return [
-    `${greeting}Buyer care request via RealCRM — please help this buyer.`,
+    `${greeting}Buyer care request via Your Bhoomi — please help this buyer.`,
     `Buyer: ${requirement?.customer?.name || 'Lead'}`,
     requirement?.customer?.phone ? `Phone: ${requirement.customer.phone}` : null,
     `Need: ${requirement?.propertyType || 'Any'} · ${requirement?.listingType || ''}`,
@@ -74,7 +74,7 @@ export function buildLeadShareText(requirement, agentName = '') {
     requirement?.notes ? `Notes: ${requirement.notes}` : null,
     '',
     'Goal: serve the buyer well and keep them happy.',
-    'Shared via RealCRM',
+    'Shared via Your Bhoomi',
   ]
     .filter(Boolean)
     .join('\n');
